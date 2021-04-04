@@ -2,8 +2,10 @@ package n26api_test
 
 import (
 	"context"
+	"errors"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -85,4 +87,20 @@ func TestRoundTripper(t *testing.T) {
 			assert.Equal(t, expectedBody, string(respBody))
 		})
 	}
+}
+
+func TestRoundTripper_Error(t *testing.T) {
+	t.Parallel()
+
+	p := auth.MockTokenProvider(func(p *auth.TokenProvider) {
+		p.On("Token", mock.Anything).
+			Return("", errors.New("token error"))
+	})(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	resp, err := n26api.TokenRoundTripper(p, nil)(req)
+
+	assert.Nil(t, resp)
+	assert.NotNil(t, err)
+	assert.EqualError(t, err, "token error")
 }
