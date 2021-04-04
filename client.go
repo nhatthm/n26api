@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	// BaseUrl is N26 API Base URL.
-	BaseUrl = "https://api.tech26.de"
+	// BaseURL is N26 API Base URL.
+	BaseURL = "https://api.tech26.de"
 
 	envDeviceID = "N26_DEVICE"
 )
@@ -37,7 +37,7 @@ type config struct {
 	tokens      []auth.TokenProvider
 	transport   http.RoundTripper
 
-	baseUrl  string
+	baseURL  string
 	timeout  time.Duration
 	username string
 	password string
@@ -55,7 +55,7 @@ func NewClient(options ...Option) *Client {
 		config: &config{
 			transport: http.DefaultTransport,
 
-			baseUrl:  BaseUrl,
+			baseURL:  BaseURL,
 			timeout:  time.Minute,
 			deviceID: emptyUUID,
 
@@ -79,8 +79,12 @@ func NewClient(options ...Option) *Client {
 		Credentials(c.config.username, c.config.password),
 	)
 
+	for _, p := range c.config.credentials {
+		credentials.chain(p)
+	}
+
 	token := chainTokenProviders(
-		newAPITokenProvider(c.config.baseUrl, c.config.timeout, credentials, c.config.deviceID, c.clock).
+		newAPITokenProvider(c.config.baseURL, c.config.timeout, credentials, c.config.deviceID, c.clock).
 			WithMFATimeout(c.config.mfaTimeout).
 			WithMFAWait(c.config.mfaWait).
 			WithTransport(c.config.transport),
@@ -94,7 +98,7 @@ func NewClient(options ...Option) *Client {
 
 	// Initiates API client.
 	apiClient := api.NewClient()
-	apiClient.BaseURL = c.config.baseUrl
+	apiClient.BaseURL = c.config.baseURL
 	apiClient.Timeout = c.config.timeout
 
 	c.api = apiClient

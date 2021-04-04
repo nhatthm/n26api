@@ -44,7 +44,7 @@ func TestIntegrationFindAllTransactionsInRange(t *testing.T) {
 	baseURL := os.Getenv("N26_BASE_URL")
 
 	if baseURL == "" {
-		baseURL = BaseUrl
+		baseURL = BaseURL
 	}
 
 	c := NewClient(

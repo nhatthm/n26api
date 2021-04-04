@@ -20,13 +20,13 @@ import (
 // - N26_DEVICE: The device ID in UUID format (optional).
 func TestIntegrationApiTokenProvider(t *testing.T) {
 	deviceID := deviceID(uuid.UUID{})
-	apiUrl := os.Getenv("N26_BASE_URL")
+	baseURL := os.Getenv("N26_BASE_URL")
 
-	if apiUrl == "" {
-		apiUrl = BaseUrl
+	if baseURL == "" {
+		baseURL = BaseURL
 	}
 
-	p := newAPITokenProvider(apiUrl, time.Second, CredentialsFromEnv(), deviceID, liveClock{})
+	p := newAPITokenProvider(baseURL, time.Second, CredentialsFromEnv(), deviceID, liveClock{})
 
 	done := make(chan struct{}, 1)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)

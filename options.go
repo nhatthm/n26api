@@ -11,7 +11,7 @@ import (
 // WithBaseUrl sets API Base URL.
 func WithBaseUrl(baseUrl string) Option {
 	return func(c *Client) {
-		c.config.baseUrl = baseUrl
+		c.config.baseURL = baseUrl
 	}
 }
 
