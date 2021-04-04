@@ -1,0 +1,47 @@
+[
+    {
+        "op": "add",
+        "path": "/components/schemas/RequiredMFATokenError/properties/mfaToken/x-go-type",
+        "value": "github.com/google/uuid.UUID"
+    },
+    {
+        "op": "add",
+        "path": "/components/schemas/RequiredMFATokenError/properties/userId/x-go-type",
+        "value": "github.com/google/uuid.UUID"
+    },
+    {
+        "op": "add",
+        "path": "/components/schemas/Transaction/properties/id/x-go-type",
+        "value": "github.com/google/uuid.UUID"
+    },
+    {
+        "op": "add",
+        "path": "/components/schemas/Transaction/properties/userId/x-go-type",
+        "value": "github.com/google/uuid.UUID"
+    },
+    {
+        "op": "add",
+        "path": "/components/schemas/Transaction/properties/accountId/x-go-type",
+        "value": "github.com/google/uuid.UUID"
+    },
+    {
+        "op": "add",
+        "path": "/components/schemas/Transaction/properties/cardId/x-go-type",
+        "value": "github.com/google/uuid.UUID"
+    },
+    {
+        "op": "add",
+        "path": "/components/schemas/Transaction/properties/smartLinkId/x-go-type",
+        "value": "github.com/google/uuid.UUID"
+    },
+    {
+        "op": "add",
+        "path": "/components/schemas/Transaction/properties/smartContactId/x-go-type",
+        "value": "github.com/google/uuid.UUID"
+    },
+    {
+        "op": "add",
+        "path": "/components/schemas/Transaction/properties/linkId/x-go-type",
+        "value": "github.com/google/uuid.UUID"
+    }
+]

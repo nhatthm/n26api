@@ -1,0 +1,87 @@
+package n26api
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+
+	"github.com/nhatthm/n26api/pkg/auth"
+)
+
+// WithBaseUrl sets API Base URL.
+func WithBaseUrl(baseUrl string) Option {
+	return func(c *Client) {
+		c.config.baseUrl = baseUrl
+	}
+}
+
+// WithTimeout sets API Timeout.
+func WithTimeout(timeout time.Duration) Option {
+	return func(c *Client) {
+		c.config.timeout = timeout
+	}
+}
+
+// WithUsername sets username to login.
+func WithUsername(username string) Option {
+	return func(c *Client) {
+		c.config.username = username
+	}
+}
+
+// WithPassword sets password to login.
+func WithPassword(password string) Option {
+	return func(c *Client) {
+		c.config.password = password
+	}
+}
+
+// WithDeviceID sets device ID to login.
+func WithDeviceID(deviceID uuid.UUID) Option {
+	return func(c *Client) {
+		c.config.deviceID = deviceID
+	}
+}
+
+// WithCredentials sets username and password to login.
+func WithCredentials(username string, password string) Option {
+	return func(c *Client) {
+		c.config.username = username
+		c.config.password = password
+	}
+}
+
+// WithCredentialsProvider chains a new credentials provider.
+func WithCredentialsProvider(provider CredentialsProvider) Option {
+	return func(c *Client) {
+		c.config.credentials = append(c.config.credentials, provider)
+	}
+}
+
+// WithTokenProvider chains a new token provider.
+func WithTokenProvider(provider auth.TokenProvider) Option {
+	return func(c *Client) {
+		c.config.tokens = append(c.config.tokens, provider)
+	}
+}
+
+// WithClock sets the clock (for testing purpose).
+func WithClock(clock Clock) Option {
+	return func(c *Client) {
+		c.clock = clock
+	}
+}
+
+// WithMFATimeout sets the MFA Timeout for authentication.
+func WithMFATimeout(timeout time.Duration) Option {
+	return func(c *Client) {
+		c.config.mfaTimeout = timeout
+	}
+}
+
+// WithMFAWait sets the MFA Wait Time for authentication.
+func WithMFAWait(waitTime time.Duration) Option {
+	return func(c *Client) {
+		c.config.mfaWait = waitTime
+	}
+}

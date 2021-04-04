@@ -1,0 +1,464 @@
+openapi: "3.0.0"
+info:
+  description: "Collection of observed API calls and methods. No guarantees are provided that they are still functioning as specified."
+  version: "0.1"
+  title: "N26 bank unofficial OpenAPI definition"
+  termsOfService: "https://next.n26.com/en-de/bug-bounty-program/"
+  contact:
+    email: "security@n26.com"
+
+servers:
+  - url: "https://api.tech26.de/"
+
+security:
+  - auth:
+      - read
+
+paths:
+  /oauth/token:
+    post:
+      tags:
+        - auth
+      parameters:
+        - in: header
+          name: device-token
+          schema:
+            type: string
+          required: true
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+      responses:
+        200:
+          description: "Success"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        400:
+          description: "Bad Credentials"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadCredentialsError"
+        401:
+          description: "Unauthorized Authentication"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedAuthError"
+        403:
+          description: "Require MFA Token"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequiredMFATokenError"
+        429:
+          description: "Too Many Login Attempts"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TooManyLoginAttemptsError"
+      security:
+        - basicAuth: []
+
+  /api/mfa/challenge:
+    post:
+      tags:
+        - auth
+      parameters:
+          - in: header
+            name: device-token
+            schema:
+              type: string
+            required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFAChallengeRequest'
+      responses:
+        201:
+          description: "Created"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  challengeType:
+                    type: string
+        400:
+          description: "Bad Credentials"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadCredentialsError"
+        401:
+          description: "Unauthorized MFA Challenge"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedMfaChallengeError"
+      security:
+        - basicAuth: [ ]
+
+  /api/smrt/transactions:
+    get:
+      description: "Get list of transactions"
+      tags:
+        - transactions
+      parameters:
+        - name: from
+          in: query
+          description: Timestamp - milliseconds since 1970 in CET
+          schema:
+            type: integer
+        - name: to
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          description: Limit the number of transactions to return
+          in: query
+          schema:
+            type: integer
+        - name: pending
+          in: query
+          schema:
+            type: boolean
+        - name: categories
+          description: Comma separated list of category IDs
+          in: query
+          schema:
+            type: string
+        - name: textFilter
+          in: query
+          description: Query string to search for
+          schema:
+            type: string
+        - name: lastId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: "Success"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transactions"
+        401:
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidTokenError"
+      security:
+        - oauth2: []
+
+components:
+  schemas:
+    MFAChallengeRequest:
+      type: object
+      properties:
+        challengeType:
+          type: string
+        mfaToken:
+          type: string
+      required:
+        - challengeType
+        - mfaToken
+
+    TokenRequest:
+      type: object
+      properties:
+        grant_type:
+          type: string
+        username:
+          type: string
+          x-nullable: true
+        password:
+          type: string
+          x-nullable: true
+        mfaToken:
+          type: string
+          x-nullable: true
+        refresh_token:
+          type: string
+          x-nullable: true
+      required:
+        - grant_type
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+        host_url:
+          type: string
+      required:
+        - access_token
+        - refresh_token
+        - expires_in
+
+    Transactions:
+      type: array
+      items:
+        $ref: "#/components/schemas/Transaction"
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        type:
+          type: string
+        amount:
+          type: number
+        currencyCode:
+          type: string
+        originalAmount:
+          type: number
+        originalCurrency:
+          type: string
+        exchangeRate:
+          type: number
+        merchantCity:
+          type: string
+        visibleTS:
+          type: integer
+        mcc:
+          type: integer
+        mccGroup:
+          type: integer
+        merchantName:
+          type: string
+        recurring:
+          type: boolean
+        partnerBankName:
+          type: string
+        partnerBic:
+          type: string
+        partnerBcn:
+          type: string
+        partnerAccountIsSepa:
+          type: boolean
+        partnerName:
+          type: string
+        accountId:
+          type: string
+          format: uuid
+        partnerIban:
+          type: string
+        partnerAccountBan:
+          type: string
+        category:
+          type: string
+        cardId:
+          type: string
+          format: uuid
+        referenceText:
+          type: string
+        userAccepted:
+          type: integer
+        userCertified:
+          type: integer
+        pending:
+          type: boolean
+        transactionNature:
+          type: string
+        createdTS:
+          type: integer
+        merchantCountry:
+          type: integer
+        merchantCountryCode:
+          type: integer
+        smartLinkId:
+          type: string
+          format: uuid
+        smartContactId:
+          type: string
+          format: uuid
+        linkId:
+          type: string
+          format: uuid
+        txnCondition:
+          type: string
+        confirmed:
+          type: integer
+      required:
+        - id
+        - userId
+        - type
+        - amount
+        - currencyCode
+        - visibleTS
+        - accountId
+        - category
+        - userCertified
+        - pending
+        - transactionNature
+        - createdTS
+        - smartLinkId
+        - linkId
+        - confirmed
+
+    RequiredMFATokenError:
+      type: object
+      properties:
+        userMessage:
+          $ref: "#/components/schemas/UserMessage"
+        mfaToken:
+          type: string
+          format: uuid
+        error_description:
+          type: string
+        detail:
+          type: string
+        hostUrl:
+          type: string
+        type:
+          type: string
+        error:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        status:
+          type: integer
+      required:
+        - mfaToken
+        - userId
+        - userMessage
+
+    UnauthorizedAuthError:
+      type: object
+      properties:
+        status:
+          type: integer
+        detail:
+          type: string
+        type:
+          type: string
+        userMessage:
+          $ref: "#/components/schemas/UserMessage"
+        error:
+          type: string
+        error_description:
+          type: string
+      required:
+        - userMessage
+
+    UnauthorizedMfaChallengeError:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+
+    BadCredentialsError:
+      type: object
+      properties:
+        status:
+          type: integer
+        detail:
+          type: string
+        type:
+          type: string
+        userMessage:
+          $ref: "#/components/schemas/UserMessage"
+        error:
+          type: string
+        error_description:
+          type: string
+      required:
+        - userMessage
+
+    InvalidTokenError:
+      type: object
+      properties:
+        status:
+          type: integer
+        detail:
+          type: string
+        type:
+          type: string
+        userMessage:
+          $ref: "#/components/schemas/UserMessage"
+        error:
+          type: string
+        error_description:
+          type: string
+      required:
+        - userMessage
+
+    TooManyLoginAttemptsError:
+      type: object
+      properties:
+        status:
+          type: integer
+        detail:
+          type: string
+        userMessage:
+          $ref: "#/components/schemas/UserMessage"
+        error:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+      required:
+        - userMessage
+
+    UserMessage:
+      type: object
+      properties:
+        title:
+          type: string
+        detail:
+          type: string
+
+  securitySchemes:
+    auth:
+      type: oauth2
+      description: "Client ID: nativeweb, Client Secret: <empty>, request type: Request body"
+      flows:
+        password:
+          tokenUrl: https://api.tech26.de/oauth/token
+          scopes:
+            read: Read data
+            write: Write data
+            trust: Trust
+    basicAuth:
+      type: http
+      scheme: basic
+
+externalDocs:
+  description: "Find out more about OpenAPI"
+  url: "http://swagger.io"
+

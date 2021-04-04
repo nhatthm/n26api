@@ -1,0 +1,23 @@
+[
+    {
+        "op": "add",
+        "path": "/components/schemas/Transaction/x-go-type",
+        "value": "github.com/nhatthm/n26api/pkg/transaction.Transaction"
+    },
+    {
+        "op": "remove",
+        "path": "/security"
+    },
+    {
+        "op": "remove",
+        "path": "/paths/~1oauth~1token/post/security"
+    },
+    {
+        "op": "remove",
+        "path": "/paths/~1api~1mfa~1challenge/post/security"
+    },
+    {
+        "op": "remove",
+        "path": "/paths/~1api~1smrt~1transactions/get/security"
+    }
+]
