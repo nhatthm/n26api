@@ -20,11 +20,11 @@ func TestApiTokenProvider_GetToken(t *testing.T) {
 	deviceID := uuid.New()
 
 	configureTimeout := func(p *apiTokenProvider) {
-		// Timeout: 35ms.
-		// Wait time: 10ms.
+		// Timeout: 175ms.
+		// Wait time: 50ms.
 		// Max calls: 3.
-		p.WithMFATimeout(35 * time.Millisecond).
-			WithMFAWait(10 * time.Millisecond)
+		p.WithMFATimeout(175 * time.Millisecond).
+			WithMFAWait(50 * time.Millisecond)
 	}
 
 	testCases := []struct {
