@@ -8,7 +8,7 @@ import (
 )
 
 // CredentialsProviderMocker is CredentialsProvider mocker.
-type CredentialsProviderMocker func(t testing.TB) *CredentialsProvider
+type CredentialsProviderMocker func(tb testing.TB) *CredentialsProvider
 
 // NoMockCredentialsProvider is no mock CredentialsProvider.
 var NoMockCredentialsProvider = MockCredentialsProvider()
@@ -41,11 +41,13 @@ func mockCredentialsProvider(mocks ...func(p *CredentialsProvider)) *Credentials
 
 // MockCredentialsProvider creates CredentialsProvider mock with cleanup to ensure all the expectations are met.
 func MockCredentialsProvider(mocks ...func(p *CredentialsProvider)) CredentialsProviderMocker {
-	return func(t testing.TB) *CredentialsProvider {
+	return func(tb testing.TB) *CredentialsProvider {
+		tb.Helper()
+
 		p := mockCredentialsProvider(mocks...)
 
-		t.Cleanup(func() {
-			assert.True(t, p.Mock.AssertExpectations(t))
+		tb.Cleanup(func() {
+			assert.True(tb, p.Mock.AssertExpectations(tb))
 		})
 
 		return p

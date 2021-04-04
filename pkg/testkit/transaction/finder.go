@@ -12,7 +12,7 @@ import (
 )
 
 // FinderMocker is Finder mocker.
-type FinderMocker func(t testing.TB) *Finder
+type FinderMocker func(tb testing.TB) *Finder
 
 // NoMockFinder is no mock Finder.
 var NoMockFinder = MockFinder()
@@ -51,11 +51,13 @@ func mockFinder(mocks ...func(f *Finder)) *Finder {
 
 // MockFinder creates Finder mock with cleanup to ensure all the expectations are met.
 func MockFinder(mocks ...func(f *Finder)) FinderMocker {
-	return func(t testing.TB) *Finder {
+	return func(tb testing.TB) *Finder {
+		tb.Helper()
+
 		f := mockFinder(mocks...)
 
-		t.Cleanup(func() {
-			assert.True(t, f.Mock.AssertExpectations(t))
+		tb.Cleanup(func() {
+			assert.True(tb, f.Mock.AssertExpectations(tb))
 		})
 
 		return f

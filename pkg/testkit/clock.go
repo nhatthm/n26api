@@ -9,7 +9,7 @@ import (
 )
 
 // ClockMocker is Clock mocker.
-type ClockMocker func(t testing.TB) *Clock
+type ClockMocker func(tb testing.TB) *Clock
 
 // NoMockClock is no mock Clock.
 var NoMockClock = MockClock()
@@ -37,11 +37,13 @@ func mockClock(mocks ...func(c *Clock)) *Clock {
 
 // MockClock creates Clock mock with cleanup to ensure all the expectations are met.
 func MockClock(mocks ...func(c *Clock)) ClockMocker {
-	return func(t testing.TB) *Clock {
+	return func(tb testing.TB) *Clock {
+		tb.Helper()
+
 		c := mockClock(mocks...)
 
-		t.Cleanup(func() {
-			assert.True(t, c.Mock.AssertExpectations(t))
+		tb.Cleanup(func() {
+			assert.True(tb, c.Mock.AssertExpectations(tb))
 		})
 
 		return c

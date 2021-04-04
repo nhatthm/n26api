@@ -11,7 +11,7 @@ import (
 )
 
 // TokenProviderMocker is TokenProvider mocker.
-type TokenProviderMocker func(t testing.TB) *TokenProvider
+type TokenProviderMocker func(tb testing.TB) *TokenProvider
 
 // NoMockTokenProvider is no mock TokenProvider.
 var NoMockTokenProvider = MockTokenProvider()
@@ -50,11 +50,13 @@ func mockTokenProvider(mocks ...func(p *TokenProvider)) *TokenProvider {
 
 // MockTokenProvider creates TokenProvider mock with cleanup to ensure all the expectations are met.
 func MockTokenProvider(mocks ...func(p *TokenProvider)) TokenProviderMocker {
-	return func(t testing.TB) *TokenProvider {
+	return func(tb testing.TB) *TokenProvider {
+		tb.Helper()
+
 		i := mockTokenProvider(mocks...)
 
-		t.Cleanup(func() {
-			assert.True(t, i.Mock.AssertExpectations(t))
+		tb.Cleanup(func() {
+			assert.True(tb, i.Mock.AssertExpectations(tb))
 		})
 
 		return i
