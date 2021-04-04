@@ -103,7 +103,7 @@ func TestClient_FindAllTransactionsInRange(t *testing.T) {
 
 			s := tc.mockServer(t)
 			c := n26api.NewClient(
-				n26api.WithBaseUrl(s.URL()),
+				n26api.WithBaseURL(s.URL()),
 				n26api.WithDeviceID(deviceID),
 				n26api.WithCredentials(n26Username, n26Password),
 				n26api.WithMFAWait(5*time.Millisecond),

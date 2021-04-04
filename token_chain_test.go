@@ -12,6 +12,8 @@ import (
 )
 
 func TestChainTokenProvider_Token(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		scenario      string
 		mockProviders []authMock.TokenProviderMocker

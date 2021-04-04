@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 
 	transactionMock "github.com/nhatthm/n26api/pkg/testkit/transaction"
 	"github.com/nhatthm/n26api/pkg/transaction"
@@ -55,6 +56,17 @@ func TestFinder_FindAllTransactionsInRange(t *testing.T) {
 		t.Run(tc.scenario, func(t *testing.T) {
 			t.Parallel()
 
+			f := tc.mockFinder(t)
+
+			result, err := f.FindAllTransactionsInRange(context.Background(), from, to)
+
+			assert.Equal(t, tc.expectedResult, result)
+
+			if tc.expectedError == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, tc.expectedError)
+			}
 		})
 	}
 }

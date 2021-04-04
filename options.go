@@ -8,10 +8,10 @@ import (
 	"github.com/nhatthm/n26api/pkg/auth"
 )
 
-// WithBaseUrl sets API Base URL.
-func WithBaseUrl(baseUrl string) Option {
+// WithBaseURL sets API Base URL.
+func WithBaseURL(baseURL string) Option {
 	return func(c *Client) {
-		c.config.baseURL = baseUrl
+		c.config.baseURL = baseURL
 	}
 }
 

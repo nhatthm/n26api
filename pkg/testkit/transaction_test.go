@@ -109,8 +109,12 @@ func TestWithFindAllTransactionsInRange(t *testing.T) {
 
 			for i, expected := range tc.expected {
 				actual := s.ExpectedRequests[i]
-				expectedBody, _ := expected.Do(nil)
-				actualBody, _ := actual.Do(nil)
+
+				expectedBody, err := expected.Do(nil)
+				assert.NoError(t, err)
+
+				actualBody, err := actual.Do(nil)
+				assert.NoError(t, err)
 
 				assert.Equal(t, expected.RequestURI, actual.RequestURI)
 				assert.Equal(t, expectedBody, actualBody)

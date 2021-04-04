@@ -19,20 +19,23 @@ func TestDeviceID_FromEnv(t *testing.T) {
 	currentDeviceID := os.Getenv(envDeviceID)
 
 	t.Cleanup(func() {
-		_ = os.Setenv(envDeviceID, currentDeviceID)
+		err := os.Setenv(envDeviceID, currentDeviceID)
+		assert.NoError(t, err)
 	})
 
 	emptyUUID := uuid.UUID{}
 
 	t.Run("valid device id", func(t *testing.T) {
 		newUUID := uuid.New()
-		_ = os.Setenv(envDeviceID, newUUID.String())
+		err := os.Setenv(envDeviceID, newUUID.String())
+		assert.NoError(t, err)
 
 		assert.Equal(t, newUUID, deviceID(emptyUUID))
 	})
 
 	t.Run("invalid device id", func(t *testing.T) {
-		_ = os.Setenv(envDeviceID, "hello world")
+		err := os.Setenv(envDeviceID, "hello world")
+		assert.NoError(t, err)
 
 		assert.Panics(t, func() {
 			deviceID(emptyUUID)

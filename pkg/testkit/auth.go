@@ -40,6 +40,26 @@ func expectRefreshToken(s *Server) *Request {
 		WithBody("grant_type=refresh_token&refresh_token={{RefreshToken}}")
 }
 
+func returnToken(s *Server) func(_ *http.Request) ([]byte, error) {
+	return func(_ *http.Request) ([]byte, error) {
+		accessToken := uuid.New()
+		refreshToken := uuid.New()
+
+		s.WithAccessToken(accessToken).
+			WithRefreshToken(refreshToken)
+
+		response := api.TokenResponse{
+			AccessToken:  accessToken.String(),
+			TokenType:    "bearer",
+			RefreshToken: refreshToken.String(),
+			ExpiresIn:    889,
+			HostURL:      s.URL(),
+		}
+
+		return json.Marshal(response)
+	}
+}
+
 // WithAuthPasswordLoginFailureWrongCredentials expects a request for login and returns a bad credentials error (400).
 func WithAuthPasswordLoginFailureWrongCredentials(username, password string, deviceID uuid.UUID) ServerOption {
 	return func(s *Server) {
@@ -196,23 +216,7 @@ func WithAuthConfirmLoginSuccess() ServerOption {
 	return func(s *Server) {
 		expectConfirmLogin(s).
 			ReturnCode(http.StatusOK).
-			Handler(func(r *http.Request) ([]byte, error) {
-				accessToken := uuid.New()
-				refreshToken := uuid.New()
-
-				s.WithAccessToken(accessToken).
-					WithRefreshToken(refreshToken)
-
-				response := api.TokenResponse{
-					AccessToken:  accessToken.String(),
-					TokenType:    "bearer",
-					RefreshToken: refreshToken.String(),
-					ExpiresIn:    889,
-					HostURL:      s.URL(),
-				}
-
-				return json.Marshal(response)
-			})
+			Handler(returnToken(s))
 	}
 }
 
@@ -248,23 +252,7 @@ func WithAuthRefreshTokenSuccess() ServerOption {
 	return func(s *Server) {
 		expectRefreshToken(s).
 			ReturnCode(http.StatusOK).
-			Handler(func(r *http.Request) ([]byte, error) {
-				accessToken := uuid.New()
-				refreshToken := uuid.New()
-
-				s.WithAccessToken(accessToken).
-					WithRefreshToken(refreshToken)
-
-				response := api.TokenResponse{
-					AccessToken:  accessToken.String(),
-					TokenType:    "bearer",
-					RefreshToken: refreshToken.String(),
-					ExpiresIn:    889,
-					HostURL:      s.URL(),
-				}
-
-				return json.Marshal(response)
-			})
+			Handler(returnToken(s))
 	}
 }
 

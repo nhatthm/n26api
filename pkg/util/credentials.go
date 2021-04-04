@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Base64Credentials returns the base64 encoded "username:password"
+// Base64Credentials returns the base64 encoded `username:password`.
 func Base64Credentials(username, password string) string {
 	var sb strings.Builder
 

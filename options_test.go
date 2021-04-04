@@ -12,11 +12,11 @@ import (
 	authMock "github.com/nhatthm/n26api/pkg/testkit/auth"
 )
 
-func TestWithBaseUrl(t *testing.T) {
+func TestWithBaseURL(t *testing.T) {
 	t.Parallel()
 
 	expected := "http://example.com"
-	c := NewClient(WithBaseUrl(expected))
+	c := NewClient(WithBaseURL(expected))
 
 	assert.Equal(t, expected, c.config.baseURL)
 }

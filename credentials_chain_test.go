@@ -9,6 +9,8 @@ import (
 )
 
 func TestChainCredentialsProvider(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		scenario         string
 		mockProviders    []testkit.CredentialsProviderMocker
@@ -44,6 +46,8 @@ func TestChainCredentialsProvider(t *testing.T) {
 }
 
 func TestChainCredentialsProviders(t *testing.T) {
+	t.Parallel()
+
 	mocks := provideCredentialsProviders()
 	providers := make([]CredentialsProvider, 0, len(mocks))
 

@@ -98,7 +98,7 @@ func TestRoundTripper_Error(t *testing.T) {
 	})(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	resp, err := n26api.TokenRoundTripper(p, nil)(req)
+	resp, err := n26api.TokenRoundTripper(p, nil)(req) // nolint:bodyclose
 
 	assert.Nil(t, resp)
 	assert.NotNil(t, err)

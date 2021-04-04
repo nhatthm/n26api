@@ -70,7 +70,6 @@ func (p *apiTokenProvider) login(ctx context.Context) (string, error) {
 		Username:    util.StringPtr(p.credentials.Username()),
 		Password:    util.StringPtr(p.credentials.Password()),
 	})
-
 	if err != nil {
 		return "", ctxd.WrapError(ctx, err, "unexpected response")
 	}
@@ -99,7 +98,6 @@ func (p *apiTokenProvider) challenge(ctx context.Context, token string) error {
 			MfaToken:      token,
 		},
 	})
-
 	if err != nil {
 		return ctxd.WrapError(ctx, err, "failed to challenge mfa")
 	}
@@ -117,7 +115,6 @@ func (p *apiTokenProvider) confirmLogin(ctx context.Context, token string) (*api
 		GrantType:   "mfa_oob",
 		MfaToken:    util.StringPtr(token),
 	})
-
 	if err != nil {
 		return nil, ctxd.WrapError(ctx, err, "failed to confirm login")
 	}
@@ -147,7 +144,7 @@ func (p *apiTokenProvider) get(ctx context.Context, timestamp time.Time) (auth.T
 	for {
 		select {
 		case <-ticker.C:
-			res, _ := p.confirmLogin(timeout, mfaToken)
+			res, _ := p.confirmLogin(timeout, mfaToken) // nolint:errcheck
 
 			if res != nil {
 				return p.setToken(*res, timestamp).accessToken, nil
@@ -165,7 +162,6 @@ func (p *apiTokenProvider) refresh(ctx context.Context, timestamp time.Time) (au
 		GrantType:    "refresh_token",
 		RefreshToken: util.StringPtr(string(p.getToken().refreshToken)),
 	})
-
 	if err != nil {
 		return "", ctxd.WrapError(ctx, err, "failed to refresh token")
 	}
@@ -235,14 +231,14 @@ func (t apiToken) isRefreshable(timestamp time.Time) bool {
 }
 
 func newAPITokenProvider(
-	baseUrl string,
+	baseURL string,
 	timeout time.Duration,
 	credentials CredentialsProvider,
 	deviceID uuid.UUID,
 	clock Clock,
 ) *apiTokenProvider {
 	c := api.NewClient()
-	c.BaseURL = baseUrl
+	c.BaseURL = baseURL
 	c.Timeout = timeout
 	c.SetTransport(BasicAuthRoundTripper(
 		auth.BasicAuthUsername, auth.BasicAuthPassword,
