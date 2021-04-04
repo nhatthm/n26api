@@ -27,17 +27,18 @@ func buildSmrtTransactionsURI(request api.GetAPISmrtTransactionsRequest) string 
 		query.Set("limit", strconv.FormatInt(*request.Limit, 10))
 	}
 
-	if request.Pending != nil {
-		query.Set("pending", strconv.FormatBool(*request.Pending))
-	}
-
-	if request.Categories != nil {
-		query.Set("categories", *request.Categories)
-	}
-
-	if request.TextFilter != nil {
-		query.Set("textFilter", *request.TextFilter)
-	}
+	// We do not need this for now.
+	// if request.Pending != nil {
+	// 	query.Set("pending", strconv.FormatBool(*request.Pending))
+	// }
+	//
+	// if request.Categories != nil {
+	// 	query.Set("categories", *request.Categories)
+	// }
+	//
+	// if request.TextFilter != nil {
+	// 	query.Set("textFilter", *request.TextFilter)
+	// }
 
 	if request.LastID != nil {
 		query.Set("lastId", *request.LastID)
