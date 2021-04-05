@@ -10,7 +10,7 @@ import (
 	"github.com/nhatthm/n26api/pkg/auth"
 )
 
-// TestingT is an alias of httpmock.TestingT..
+// TestingT is an alias of httpmock.TestingT.
 type TestingT = httpmock.TestingT
 
 // ServerOption is an option to configure Server.
