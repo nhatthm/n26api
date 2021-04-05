@@ -49,6 +49,16 @@ func TestServer_WithAuthAuthorization(t *testing.T) {
 	}
 }
 
+func TestServer_UserID(t *testing.T) {
+	t.Parallel()
+
+	expected := uuid.New()
+
+	s := &Server{userID: expected}
+
+	assert.Equal(t, expected, s.UserID())
+}
+
 func TestServer_WithDeviceID(t *testing.T) {
 	t.Parallel()
 

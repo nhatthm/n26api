@@ -19,7 +19,7 @@ type ServerOption = func(s *Server)
 // ServerMocker is a function that applies expectations to the mocked server.
 type ServerMocker func(t TestingT) *Server
 
-// MockServer mocks a server with authentication.
+// MockServer mocks a server with successful authentication workflow.
 func MockServer(
 	username, password string,
 	deviceID uuid.UUID,

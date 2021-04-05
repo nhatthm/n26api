@@ -109,6 +109,14 @@ func (s *Server) BasicAuthorization() string {
 	return fmt.Sprintf("Basic %s", util.Base64Credentials(s.authUsername, s.authPassword))
 }
 
+// UserID returns the userID.
+func (s *Server) UserID() uuid.UUID {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.userID
+}
+
 // AccessToken returns the accessToken.
 func (s *Server) AccessToken() auth.Token {
 	s.mu.Lock()
