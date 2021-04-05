@@ -49,6 +49,7 @@ func TestIntegrationFindAllTransactionsInRange(t *testing.T) {
 
 	c := NewClient(
 		WithBaseURL(baseURL),
+		WithTimeout(time.Minute),
 		WithDeviceID(deviceID),
 	)
 

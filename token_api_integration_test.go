@@ -26,7 +26,7 @@ func TestIntegrationApiTokenProvider(t *testing.T) {
 		baseURL = BaseURL
 	}
 
-	p := newAPITokenProvider(baseURL, time.Second, CredentialsFromEnv(), deviceID, liveClock{})
+	p := newAPITokenProvider(baseURL, time.Minute, CredentialsFromEnv(), deviceID, liveClock{})
 
 	done := make(chan struct{}, 1)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
