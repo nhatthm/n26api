@@ -26,6 +26,10 @@ go get github.com/nhatthm/n26api
 
 ## Development
 
+### API Service
+
+TBA
+
 ### API Client
 
 TBD
@@ -34,7 +38,51 @@ TBD
 
 #### Unit Test
 
-TBD
+The service can be easily mocked by using the `testkit`, all the mocked interface is provided
+by [stretchr/testify/mock](https://github.com/stretchr/testify#mock-package)
+
+For example
+
+```go
+package test
+
+import (
+    "context"
+    "time"
+
+    "github.com/google/uuid"
+    transactionMock "github.com/nhatthm/n26api/pkg/testkit/transaction"
+    "github.com/nhatthm/n26api/pkg/transaction"
+    "github.com/stretchr/testify/assert"
+)
+
+func TestTransactions(t *testing.T) {
+    t.Parallel()
+
+    from := time.Now()
+    to := from.Add(time.Hour)
+    id := uuid.New()
+
+    f := transactionMock.MockFinder(func(f *transactionMock.Finder) {
+        f.On("FindAllTransactionsInRange", context.Background(), from, to).
+            Return(
+                []transaction.Transaction{
+                    {ID: id, OriginalAmount: 3.5},
+                },
+                nil,
+            )
+    })(t)
+
+    expected := []transaction.Transaction{
+        {ID: id, OriginalAmount: 3.5},
+    }
+
+    result, err := f.FindAllTransactionsInRange(context.Background(), from, to)
+
+    assert.Equal(t, expected, result)
+    assert.NoError(t, err)
+}
+```
 
 #### Integration Test
 
