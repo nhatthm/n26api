@@ -108,7 +108,7 @@ func TestClient_FindAllTransactionsInRange(t *testing.T) {
 				n26api.WithCredentials(n26Username, n26Password),
 				n26api.WithMFAWait(5*time.Millisecond),
 				n26api.WithMFATimeout(time.Second),
-				n26api.WithTransactionsPageSize(2),
+				n26api.WithTransactionsPageSize(pageSize),
 			)
 
 			result, err := c.FindAllTransactionsInRange(context.Background(), from, to)

@@ -38,16 +38,17 @@ TBD
 
 #### Unit Test
 
-The service can be easily mocked by using the `testkit`, all the mocked interface is provided
+The services can be easily mocked by using the `testkit`, all the mocked interface is provided
 by [stretchr/testify/mock](https://github.com/stretchr/testify#mock-package)
 
-For example
+For example: Mocking `transaction.Finder` service
 
 ```go
 package test
 
 import (
     "context"
+    "testing"
     "time"
 
     "github.com/google/uuid"
@@ -85,6 +86,62 @@ func TestTransactions(t *testing.T) {
 ```
 
 #### Integration Test
+
+The `testkit` provides a mocked API server for testing.
+
+For example:
+
+```go
+package test
+
+import (
+    "context"
+    "testing"
+    "time"
+
+    "github.com/google/uuid"
+    "github.com/nhatthm/n26api"
+    "github.com/nhatthm/n26api/pkg/testkit"
+    "github.com/nhatthm/n26api/pkg/transaction"
+)
+
+func TestFindTransactions(t *testing.T) {
+    t.Parallel()
+
+    username := "username"
+    password := "password"
+    deviceID := uuid.New()
+    from := time.Now()
+    to := from.Add(time.Hour)
+    pageSize := int64(1)
+    id1 := uuid.New()
+    id2 := uuid.New()
+
+    s := testkit.MockServer(username, password, deviceID,
+        testkit.WithFindAllTransactionsInRange(
+            from, to, pageSize,
+            []transaction.Transaction{{ID: id1}, {ID: id2}},
+        ),
+    )(t)
+
+    c := n26api.NewClient(
+        n26api.WithBaseURL(s.URL()),
+        n26api.WithDeviceID(deviceID),
+        n26api.WithCredentials(username, password),
+        n26api.WithMFAWait(5*time.Millisecond),
+        n26api.WithMFATimeout(time.Second),
+        n26api.WithTransactionsPageSize(pageSize),
+    )
+
+    result, err := c.FindAllTransactionsInRange(context.Background(), from, to)
+
+    // assertions
+}
+```
+
+##### Server Options
+
+###### `WithFindAllTransactionsInRange`
 
 TBD
 
