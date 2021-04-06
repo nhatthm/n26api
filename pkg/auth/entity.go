@@ -10,7 +10,7 @@ type OAuthToken struct {
 	AccessToken      Token     `json:"access_token"`
 	RefreshToken     Token     `json:"refresh_token"`
 	ExpiresAt        time.Time `json:"expires_at"`
-	RefreshExpiresAt time.Time `json:"refresh_at"`
+	RefreshExpiresAt time.Time `json:"refresh_expires_at"`
 }
 
 // IsExpired checks whether the access token is expired or not.
