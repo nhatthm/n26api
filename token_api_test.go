@@ -2,13 +2,17 @@ package n26api
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
+	"github.com/nhatthm/n26api/pkg/auth"
 	"github.com/nhatthm/n26api/pkg/testkit"
+	authMock "github.com/nhatthm/n26api/pkg/testkit/auth"
 )
 
 func TestApiTokenProvider_GetToken(t *testing.T) {
@@ -19,7 +23,7 @@ func TestApiTokenProvider_GetToken(t *testing.T) {
 	cred := Credentials(username, password)
 	deviceID := uuid.New()
 
-	configureTimeout := func(p *apiTokenProvider) {
+	configureTimeout := func(_ *testing.T, p *apiTokenProvider) {
 		// Timeout: 175ms.
 		// Wait time: 50ms.
 		// Max calls: 3.
@@ -30,9 +34,22 @@ func TestApiTokenProvider_GetToken(t *testing.T) {
 	testCases := []struct {
 		scenario      string
 		mockServer    testkit.ServerMocker
-		configure     func(p *apiTokenProvider)
+		configure     func(t *testing.T, p *apiTokenProvider)
 		expectedError string
 	}{
+		{
+			scenario:   "could not get token from token",
+			mockServer: testkit.MockEmptyServer(),
+			configure: func(t *testing.T, p *apiTokenProvider) { // nolint: thelper
+				s := authMock.MockTokenStorage(func(s *authMock.TokenStorage) {
+					s.On("Get", context.Background(), "john.doe").
+						Return(auth.OAuthToken{}, errors.New("get token error"))
+				})(t)
+
+				p.WithStorage(s)
+			},
+			expectedError: "could not get token from storage: get token error",
+		},
 		{
 			scenario: "unexpected response",
 			mockServer: testkit.MockEmptyServer(
@@ -89,6 +106,29 @@ func TestApiTokenProvider_GetToken(t *testing.T) {
 			expectedError: "could not confirm login",
 		},
 		{
+			scenario: "could not set token",
+			mockServer: testkit.MockEmptyServer(
+				testkit.WithAuthPasswordLoginSuccess(username, password, deviceID),
+				testkit.WithAuthMFAChallengeSuccess(),
+				testkit.WithAuthConfirmLoginFailureInvalidToken(2),
+				testkit.WithAuthConfirmLoginSuccess(),
+			),
+			configure: func(t *testing.T, p *apiTokenProvider) { // nolint: thelper
+				configureTimeout(t, p)
+
+				s := authMock.MockTokenStorage(func(s *authMock.TokenStorage) {
+					s.On("Get", context.Background(), "john.doe").
+						Return(auth.OAuthToken{}, nil)
+
+					s.On("Set", context.Background(), "john.doe", mock.Anything).
+						Return(errors.New("set token error"))
+				})(t)
+
+				p.WithStorage(s)
+			},
+			expectedError: "could not persist token to storage: set token error",
+		},
+		{
 			scenario: "success",
 			mockServer: testkit.MockEmptyServer(
 				testkit.WithAuthPasswordLoginSuccess(username, password, deviceID),
@@ -106,25 +146,21 @@ func TestApiTokenProvider_GetToken(t *testing.T) {
 			t.Parallel()
 
 			s := tc.mockServer(t)
-			p := newAPITokenProvider(
-				s.URL(),
-				time.Second,
-				cred,
-				deviceID,
-				liveClock{},
-			)
+			p := newAPITokenProvider(cred, deviceID).
+				WithBaseURL(s.URL()).
+				WithTimeout(time.Second)
 
 			if tc.configure != nil {
-				tc.configure(p)
+				tc.configure(t, p)
 			}
 
 			token, err := p.Token(context.Background())
 
-			assert.Equal(t, s.AccessToken(), token)
-
 			if tc.expectedError == "" {
+				assert.Equal(t, s.AccessToken(), token)
 				assert.NoError(t, err)
 			} else {
+				assert.Empty(t, token)
 				assert.EqualError(t, err, tc.expectedError)
 			}
 		})
@@ -150,8 +186,11 @@ func TestApiTokenProvider_GetTokenFromCache(t *testing.T) {
 		c.On("Now").Return(timestamp.Add(4 * time.Minute)).Once()
 	})(t)
 
-	p := newAPITokenProvider(s.URL(), time.Second, cred, deviceID, c).
-		WithMFAWait(time.Millisecond)
+	p := newAPITokenProvider(cred, deviceID).
+		WithBaseURL(s.URL()).
+		WithTimeout(time.Second).
+		WithMFAWait(time.Millisecond).
+		WithClock(c)
 
 	// 1st try.
 	token, err := p.Token(context.Background())
@@ -186,9 +225,10 @@ func TestApiTokenProvider_RefreshToken(t *testing.T) {
 	})
 
 	testCases := []struct {
-		scenario      string
-		mockServer    testkit.ServerMocker
-		expectedError string
+		scenario       string
+		mockServer     testkit.ServerMocker
+		configureStep2 func(t *testing.T, p *apiTokenProvider, s *testkit.Server)
+		expectedError  string
 	}{
 		{
 			scenario: "failed to refresh token",
@@ -207,6 +247,33 @@ func TestApiTokenProvider_RefreshToken(t *testing.T) {
 			),
 		},
 		{
+			scenario: "could not persist token",
+			mockServer: testkit.MockEmptyServer(
+				testkit.WithAuthSuccess(username, password, deviceID),
+				testkit.WithAuthRefreshTokenSuccess(),
+			),
+			configureStep2: func(t *testing.T, p *apiTokenProvider, svr *testkit.Server) { // nolint: thelper
+				s := authMock.MockTokenStorage(func(s *authMock.TokenStorage) {
+					s.On("Get", context.Background(), "john.doe").
+						Return(
+							auth.OAuthToken{
+								AccessToken:      svr.AccessToken(),
+								RefreshToken:     svr.RefreshToken(),
+								ExpiresAt:        timestamp.Add(time.Minute),
+								RefreshExpiresAt: timestamp.Add(time.Hour),
+							},
+							nil,
+						)
+
+					s.On("Set", context.Background(), "john.doe", mock.Anything).
+						Return(errors.New("set token error"))
+				})(t)
+
+				p.WithStorage(s)
+			},
+			expectedError: "could not persist token to storage: set token error",
+		},
+		{
 			scenario: "success",
 			mockServer: testkit.MockEmptyServer(
 				testkit.WithAuthSuccess(username, password, deviceID),
@@ -221,9 +288,12 @@ func TestApiTokenProvider_RefreshToken(t *testing.T) {
 			t.Parallel()
 
 			s := tc.mockServer(t)
-			p := newAPITokenProvider(s.URL(), time.Second, cred, deviceID, mockClock(t)).
+			p := newAPITokenProvider(cred, deviceID).
+				WithBaseURL(s.URL()).
+				WithTimeout(time.Second).
 				WithMFAWait(time.Millisecond).
-				WithRefreshTTL(refreshTTL)
+				WithRefreshTTL(refreshTTL).
+				WithClock(mockClock(t))
 
 			// 1st step: get the token.
 			token1, err := p.Token(context.Background())
@@ -233,6 +303,10 @@ func TestApiTokenProvider_RefreshToken(t *testing.T) {
 			assert.NoError(t, err)
 
 			// 2nd step: refresh the token.
+			if tc.configureStep2 != nil {
+				tc.configureStep2(t, p, s)
+			}
+
 			token2, err := p.Token(context.Background())
 
 			if tc.expectedError == "" {
@@ -269,9 +343,12 @@ func TestApiTokenProvider_TokenExpired(t *testing.T) {
 		c.On("Now").Return(timestamp.Add(refreshTTL + time.Minute)).Once()
 	})(t)
 
-	p := newAPITokenProvider(s.URL(), time.Second, cred, deviceID, c).
+	p := newAPITokenProvider(cred, deviceID).
+		WithBaseURL(s.URL()).
+		WithTimeout(time.Second).
 		WithMFAWait(time.Millisecond).
-		WithRefreshTTL(refreshTTL)
+		WithRefreshTTL(refreshTTL).
+		WithClock(c)
 
 	// 1st try.
 	token1, err := p.Token(context.Background())

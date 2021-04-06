@@ -65,6 +65,13 @@ func WithTokenProvider(provider auth.TokenProvider) Option {
 	}
 }
 
+// WithTokenStorage sets token storage for the internal apiTokenProvider.
+func WithTokenStorage(storage auth.TokenStorage) Option {
+	return func(c *Client) {
+		c.config.tokenStorage = storage
+	}
+}
+
 // WithClock sets the clock (for testing purpose).
 func WithClock(clock Clock) Option {
 	return func(c *Client) {

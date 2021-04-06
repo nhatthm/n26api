@@ -33,9 +33,10 @@ type Client struct {
 
 // config is configuration of Client.
 type config struct {
-	credentials []CredentialsProvider
-	tokens      []auth.TokenProvider
-	transport   http.RoundTripper
+	credentials  []CredentialsProvider
+	tokens       []auth.TokenProvider
+	tokenStorage auth.TokenStorage
+	transport    http.RoundTripper
 
 	baseURL  string
 	timeout  time.Duration
@@ -73,41 +74,49 @@ func NewClient(options ...Option) *Client {
 	}
 
 	c.config.deviceID = deviceID(c.config.deviceID)
-
-	credentials := chainCredentialsProviders(
-		CredentialsFromEnv(),
-		Credentials(c.config.username, c.config.password),
-	)
-
-	for _, p := range c.config.credentials {
-		credentials.chain(p)
-	}
-
-	token := chainTokenProviders(
-		newAPITokenProvider(c.config.baseURL, c.config.timeout, credentials, c.config.deviceID, c.clock).
-			WithMFATimeout(c.config.mfaTimeout).
-			WithMFAWait(c.config.mfaWait).
-			WithTransport(c.config.transport),
-	)
-
-	for _, p := range c.config.tokens {
-		token.chain(p)
-	}
-
-	c.token = token
-
-	// Initiates API client.
-	apiClient := api.NewClient()
-	apiClient.BaseURL = c.config.baseURL
-	apiClient.Timeout = c.config.timeout
-
-	c.api = apiClient
-
-	c.setTransport(c.config.transport)
+	c.token = initTokenProvider(c.config, c.clock)
+	c.api = initAPIClient(c.config, c.token)
 
 	return c
 }
 
-func (c *Client) setTransport(transport http.RoundTripper) {
-	c.api.SetTransport(TokenRoundTripper(c.token, transport))
+func initTokenProvider(cfg *config, c Clock) auth.TokenProvider {
+	credentials := chainCredentialsProviders(
+		CredentialsFromEnv(),
+		Credentials(cfg.username, cfg.password),
+	)
+
+	for _, p := range cfg.credentials {
+		credentials.chain(p)
+	}
+
+	apiToken := newAPITokenProvider(credentials, cfg.deviceID).
+		WithBaseURL(cfg.baseURL).
+		WithTimeout(cfg.timeout).
+		WithMFATimeout(cfg.mfaTimeout).
+		WithMFAWait(cfg.mfaWait).
+		WithTransport(cfg.transport).
+		WithClock(c)
+
+	if cfg.tokenStorage != nil {
+		apiToken.WithStorage(cfg.tokenStorage)
+	}
+
+	token := chainTokenProviders(apiToken)
+
+	for _, p := range cfg.tokens {
+		token.chain(p)
+	}
+
+	return token
+}
+
+func initAPIClient(cfg *config, p auth.TokenProvider) *api.Client {
+	c := api.NewClient()
+	c.BaseURL = cfg.baseURL
+	c.Timeout = cfg.timeout
+
+	c.SetTransport(TokenRoundTripper(p, cfg.transport))
+
+	return c
 }

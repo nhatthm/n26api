@@ -90,6 +90,15 @@ func TestWithTokenProvider(t *testing.T) {
 	assert.Equal(t, expected, c.config.tokens)
 }
 
+func TestWithTokenStorage(t *testing.T) {
+	t.Parallel()
+
+	expected := authMock.NoMockTokenStorage(t)
+	c := NewClient(WithTokenStorage(expected))
+
+	assert.Equal(t, expected, c.config.tokenStorage)
+}
+
 func TestWithClock(t *testing.T) {
 	t.Parallel()
 

@@ -16,15 +16,15 @@ import (
 
 var _ auth.TokenProvider = (*apiTokenProvider)(nil)
 
-var emptyToken = apiToken{}
+var emptyToken = auth.OAuthToken{}
 
 type apiTokenProvider struct {
 	api         *api.Client
 	credentials CredentialsProvider
+	storage     auth.TokenStorage
 	clock       Clock
 
 	deviceID uuid.UUID
-	token    apiToken
 
 	mfaTimeout time.Duration
 	mfaWait    time.Duration
@@ -33,34 +33,25 @@ type apiTokenProvider struct {
 	mu sync.Mutex
 }
 
-type apiToken struct {
-	accessToken      auth.Token
-	refreshToken     auth.Token
-	expiresAt        time.Time
-	refreshExpiresAt time.Time
+func (p *apiTokenProvider) getToken(ctx context.Context, key string) (auth.OAuthToken, error) {
+	return p.storage.Get(ctx, key)
 }
 
-func (p *apiTokenProvider) getToken() apiToken {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	return p.token
-}
-
-func (p *apiTokenProvider) setToken(res api.TokenResponse, timestamp time.Time) apiToken {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
+func (p *apiTokenProvider) setToken(ctx context.Context, key string, res api.TokenResponse, timestamp time.Time) (auth.OAuthToken, error) {
 	expiryDuration := time.Duration(res.ExpiresIn * int64(time.Second))
 
-	p.token = apiToken{
-		accessToken:      auth.Token(res.AccessToken),
-		refreshToken:     auth.Token(res.RefreshToken),
-		expiresAt:        timestamp.Add(expiryDuration),
-		refreshExpiresAt: timestamp.Add(p.refreshTTL),
+	token := auth.OAuthToken{
+		AccessToken:      auth.Token(res.AccessToken),
+		RefreshToken:     auth.Token(res.RefreshToken),
+		ExpiresAt:        timestamp.Add(expiryDuration),
+		RefreshExpiresAt: timestamp.Add(p.refreshTTL),
 	}
 
-	return p.token
+	if err := p.storage.Set(ctx, key, token); err != nil {
+		return auth.OAuthToken{}, err
+	}
+
+	return token, nil
 }
 
 func (p *apiTokenProvider) login(ctx context.Context) (string, error) {
@@ -126,7 +117,7 @@ func (p *apiTokenProvider) confirmLogin(ctx context.Context, token string) (*api
 	return res.ValueOK, nil
 }
 
-func (p *apiTokenProvider) get(ctx context.Context, timestamp time.Time) (auth.Token, error) {
+func (p *apiTokenProvider) get(ctx context.Context, key string, timestamp time.Time) (auth.Token, error) {
 	mfaToken, err := p.login(ctx)
 	if err != nil {
 		return "", err
@@ -147,7 +138,12 @@ func (p *apiTokenProvider) get(ctx context.Context, timestamp time.Time) (auth.T
 			res, _ := p.confirmLogin(timeout, mfaToken) // nolint:errcheck
 
 			if res != nil {
-				return p.setToken(*res, timestamp).accessToken, nil
+				token, err := p.setToken(ctx, key, *res, timestamp)
+				if err != nil {
+					return "", ctxd.WrapError(ctx, err, "could not persist token to storage")
+				}
+
+				return token.AccessToken, nil
 			}
 
 		case <-timeout.Done():
@@ -156,24 +152,56 @@ func (p *apiTokenProvider) get(ctx context.Context, timestamp time.Time) (auth.T
 	}
 }
 
-func (p *apiTokenProvider) refresh(ctx context.Context, timestamp time.Time) (auth.Token, error) {
+func (p *apiTokenProvider) refresh(ctx context.Context, key string, refreshToken auth.Token, timestamp time.Time) (auth.Token, error) {
 	res, err := p.api.PostOauthToken(ctx, api.PostOauthTokenRequest{
 		DeviceToken:  p.deviceID.String(),
 		GrantType:    "refresh_token",
-		RefreshToken: util.StringPtr(string(p.getToken().refreshToken)),
+		RefreshToken: util.StringPtr(string(refreshToken)),
 	})
 	if err != nil {
 		return "", ctxd.WrapError(ctx, err, "failed to refresh token")
 	}
 
 	if res.ValueOK != nil {
-		return p.setToken(*res.ValueOK, timestamp).accessToken, nil
+		token, err := p.setToken(ctx, key, *res.ValueOK, timestamp)
+		if err != nil {
+			return "", ctxd.WrapError(ctx, err, "could not persist token to storage")
+		}
+
+		return token.AccessToken, nil
 	}
 
-	return p.get(ctx, timestamp)
+	return p.get(ctx, key, timestamp)
+}
+
+func (p *apiTokenProvider) WithBaseURL(baseURL string) *apiTokenProvider {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.api.BaseURL = baseURL
+
+	return p
+}
+
+func (p *apiTokenProvider) WithTimeout(timeout time.Duration) *apiTokenProvider {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.api.Timeout = timeout
+
+	return p
+}
+
+// nolint:unparam
+func (p *apiTokenProvider) WithStorage(storage auth.TokenStorage) *apiTokenProvider {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.storage = storage
+
+	return p
 }
 
 func (p *apiTokenProvider) WithTransport(transport http.RoundTripper) *apiTokenProvider {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.api.SetTransport(BasicAuthRoundTripper(auth.BasicAuthUsername, auth.BasicAuthPassword, transport))
 
 	return p
@@ -203,43 +231,48 @@ func (p *apiTokenProvider) WithRefreshTTL(ttl time.Duration) *apiTokenProvider {
 	return p
 }
 
+func (p *apiTokenProvider) WithClock(clock Clock) *apiTokenProvider {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.clock = clock
+
+	return p
+}
+
 func (p *apiTokenProvider) Token(ctx context.Context) (auth.Token, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	now := p.clock.Now()
-	token := p.getToken()
+	key := p.credentials.Username()
+
+	token, err := p.getToken(ctx, key)
+	if err != nil {
+		return "", ctxd.WrapError(ctx, err, "could not get token from storage")
+	}
 
 	if token == emptyToken {
-		return p.get(ctx, now)
+		return p.get(ctx, key, now)
 	}
 
-	if !token.isExpired(now) {
-		return token.accessToken, nil
+	if !token.IsExpired(now) {
+		return token.AccessToken, nil
 	}
 
-	if token.isRefreshable(now) {
-		return p.refresh(ctx, now)
+	if token.IsRefreshable(now) {
+		return p.refresh(ctx, key, token.RefreshToken, now)
 	}
 
-	return p.get(ctx, now)
-}
-
-func (t apiToken) isExpired(timestamp time.Time) bool {
-	return t.expiresAt.Before(timestamp)
-}
-
-func (t apiToken) isRefreshable(timestamp time.Time) bool {
-	return t.refreshExpiresAt.After(timestamp)
+	return p.get(ctx, key, now)
 }
 
 func newAPITokenProvider(
-	baseURL string,
-	timeout time.Duration,
 	credentials CredentialsProvider,
 	deviceID uuid.UUID,
-	clock Clock,
 ) *apiTokenProvider {
 	c := api.NewClient()
-	c.BaseURL = baseURL
-	c.Timeout = timeout
+	c.BaseURL = BaseURL
+	c.Timeout = time.Minute
 	c.SetTransport(BasicAuthRoundTripper(
 		auth.BasicAuthUsername, auth.BasicAuthPassword,
 		http.DefaultTransport,
@@ -248,10 +281,10 @@ func newAPITokenProvider(
 	return &apiTokenProvider{
 		api:         c,
 		credentials: credentials,
-		clock:       clock,
+		storage:     NewInMemoryTokenStorage(),
+		clock:       liveClock{},
 
 		deviceID: deviceID,
-		token:    emptyToken,
 
 		mfaTimeout: time.Minute,
 		mfaWait:    5 * time.Second,
