@@ -65,6 +65,11 @@ func (p *apiTokenProvider) setToken(ctx context.Context, key string, res api.Tok
 }
 
 func (p *apiTokenProvider) login(ctx context.Context) (string, error) {
+	password := p.credentials.Password()
+	if password == "" {
+		return "", ctxd.WrapError(ctx, ErrPasswordIsEmpty, "could not get token")
+	}
+
 	res, err := p.api.PostOauthToken(ctx, api.PostOauthTokenRequest{
 		DeviceToken: p.deviceID.String(),
 		GrantType:   "password",
@@ -256,11 +261,6 @@ func (p *apiTokenProvider) Token(ctx context.Context) (auth.Token, error) {
 	username := p.credentials.Username()
 	if username == "" {
 		return "", ctxd.WrapError(ctx, ErrUsernameIsEmpty, "could not get token")
-	}
-
-	password := p.credentials.Password()
-	if password == "" {
-		return "", ctxd.WrapError(ctx, ErrPasswordIsEmpty, "could not get token")
 	}
 
 	key := fmt.Sprintf("%s:%s", username, p.deviceID.String())
