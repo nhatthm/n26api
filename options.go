@@ -55,14 +55,21 @@ func WithCredentials(username string, password string) Option {
 // WithCredentialsProvider chains a new credentials provider.
 func WithCredentialsProvider(provider CredentialsProvider) Option {
 	return func(c *Client) {
-		c.config.credentials = append(c.config.credentials, provider)
+		c.config.credentials.prepend(provider)
+	}
+}
+
+// WithCredentialsProviderAtLast chains a new credentials provider at last position.
+func WithCredentialsProviderAtLast(provider CredentialsProvider) Option {
+	return func(c *Client) {
+		c.config.credentials.append(provider)
 	}
 }
 
 // WithTokenProvider chains a new token provider.
 func WithTokenProvider(provider auth.TokenProvider) Option {
 	return func(c *Client) {
-		c.config.tokens = append(c.config.tokens, provider)
+		c.token.prepend(provider)
 	}
 }
 

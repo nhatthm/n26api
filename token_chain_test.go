@@ -43,7 +43,7 @@ func TestChainTokenProvider_Token(t *testing.T) {
 			p := newChainTokenProvider()
 
 			for _, mockProvider := range tc.mockProviders {
-				p.chain(mockProvider(t))
+				p.prepend(mockProvider(t))
 			}
 
 			token, err := p.Token(context.Background())

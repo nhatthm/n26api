@@ -26,8 +26,13 @@ func (chain *chainTokenProvider) Token(ctx context.Context) (auth.Token, error) 
 	return "", nil
 }
 
-// chain prepends the new provider to the chain.
-func (chain *chainTokenProvider) chain(provider auth.TokenProvider) {
+// append appends a new provider to the chain.
+func (chain *chainTokenProvider) append(provider auth.TokenProvider) {
+	*chain = append(*chain, provider)
+}
+
+// prepend prepends a new provider to the chain.
+func (chain *chainTokenProvider) prepend(provider auth.TokenProvider) {
 	*chain = append(*chain, provider)
 	copy((*chain)[1:], *chain)
 	(*chain)[0] = provider
@@ -43,10 +48,7 @@ func newChainTokenProvider() *chainTokenProvider {
 // chainTokenProviders chains a list of auth.TokenProvider.
 func chainTokenProviders(providers ...auth.TokenProvider) *chainTokenProvider {
 	chain := newChainTokenProvider()
-
-	for _, p := range providers {
-		chain.chain(p)
-	}
+	*chain = providers
 
 	return chain
 }

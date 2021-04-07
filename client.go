@@ -26,7 +26,7 @@ type Option func(c *Client)
 // Client provides all N26 APIs.
 type Client struct {
 	api   *api.Client
-	token auth.TokenProvider
+	token *chainTokenProvider
 	clock clock.Clock
 
 	config *config
@@ -34,8 +34,7 @@ type Client struct {
 
 // config is configuration of Client.
 type config struct {
-	credentials  []CredentialsProvider
-	tokens       []auth.TokenProvider
+	credentials  *chainCredentialsProvider
 	tokenStorage auth.TokenStorage
 	transport    http.RoundTripper
 
@@ -55,7 +54,8 @@ type config struct {
 func NewClient(options ...Option) *Client {
 	c := &Client{
 		config: &config{
-			transport: http.DefaultTransport,
+			credentials: chainCredentialsProviders(CredentialsFromEnv()),
+			transport:   http.DefaultTransport,
 
 			baseURL:  BaseURL,
 			timeout:  time.Minute,
@@ -67,6 +67,7 @@ func NewClient(options ...Option) *Client {
 			transactionsPageSize: transactionsPageSize,
 		},
 
+		token: newChainTokenProvider(),
 		clock: clock.New(),
 	}
 
@@ -75,24 +76,16 @@ func NewClient(options ...Option) *Client {
 	}
 
 	c.config.deviceID = deviceID(c.config.deviceID)
-	c.token = initTokenProvider(c.config, c.clock)
+	c.token.append(initAPITokenProvider(c.config, c.clock))
 	c.api = initAPIClient(c.config, c.token)
 
 	return c
 }
 
-func initTokenProvider(cfg *config, c clock.Clock) auth.TokenProvider {
-	credentials := chainCredentialsProviders(
-		CredentialsFromEnv(),
-	)
+func initAPITokenProvider(cfg *config, c clock.Clock) auth.TokenProvider {
+	cfg.credentials.prepend(Credentials(cfg.username, cfg.password))
 
-	for _, p := range cfg.credentials {
-		credentials.chain(p)
-	}
-
-	credentials.chain(Credentials(cfg.username, cfg.password))
-
-	apiToken := newAPITokenProvider(credentials, cfg.deviceID).
+	apiToken := newAPITokenProvider(cfg.credentials, cfg.deviceID).
 		WithBaseURL(cfg.baseURL).
 		WithTimeout(cfg.timeout).
 		WithMFATimeout(cfg.mfaTimeout).
@@ -104,13 +97,7 @@ func initTokenProvider(cfg *config, c clock.Clock) auth.TokenProvider {
 		apiToken.WithStorage(cfg.tokenStorage)
 	}
 
-	token := chainTokenProviders(apiToken)
-
-	for _, p := range cfg.tokens {
-		token.chain(p)
-	}
-
-	return token
+	return apiToken
 }
 
 func initAPIClient(cfg *config, p auth.TokenProvider) *api.Client {

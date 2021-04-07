@@ -36,7 +36,7 @@ func TestChainCredentialsProvider(t *testing.T) {
 			p := newChainCredentialsProvider()
 
 			for _, mockProvider := range tc.mockProviders {
-				p.chain(mockProvider(t))
+				p.prepend(mockProvider(t))
 			}
 
 			assert.Equal(t, tc.expectedUsername, p.Username())
@@ -51,8 +51,8 @@ func TestChainCredentialsProviders(t *testing.T) {
 	mocks := provideCredentialsProviders()
 	providers := make([]CredentialsProvider, 0, len(mocks))
 
-	for _, m := range mocks {
-		providers = append(providers, m(t))
+	for i := len(mocks) - 1; i > -1; i-- {
+		providers = append(providers, mocks[i](t))
 	}
 
 	p := chainCredentialsProviders(providers...)

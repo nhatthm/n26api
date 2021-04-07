@@ -26,8 +26,13 @@ func (chain *chainCredentialsProvider) Password() string {
 	return ""
 }
 
-// chain prepends the new provider to the chain.
-func (chain *chainCredentialsProvider) chain(provider CredentialsProvider) {
+// append appends a new provider to the chain.
+func (chain *chainCredentialsProvider) append(provider CredentialsProvider) {
+	*chain = append(*chain, provider)
+}
+
+// prepend prepends a new provider to the chain.
+func (chain *chainCredentialsProvider) prepend(provider CredentialsProvider) {
 	*chain = append(*chain, provider)
 	copy((*chain)[1:], *chain)
 	(*chain)[0] = provider
@@ -43,10 +48,7 @@ func newChainCredentialsProvider() *chainCredentialsProvider {
 // chainCredentialsProviders chains a list of CredentialsProvider.
 func chainCredentialsProviders(providers ...CredentialsProvider) *chainCredentialsProvider {
 	chain := newChainCredentialsProvider()
-
-	for _, p := range providers {
-		chain.chain(p)
-	}
+	*chain = providers
 
 	return chain
 }

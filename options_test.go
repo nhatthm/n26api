@@ -1,6 +1,7 @@
 package n26api
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -8,8 +9,6 @@ import (
 	mockClock "github.com/nhatthm/go-clock/mock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/nhatthm/n26api/pkg/auth"
-	"github.com/nhatthm/n26api/pkg/testkit"
 	authMock "github.com/nhatthm/n26api/pkg/testkit/auth"
 )
 
@@ -72,10 +71,39 @@ func TestWithCredentials(t *testing.T) {
 func TestWithCredentialsProvider(t *testing.T) {
 	t.Parallel()
 
-	provider := testkit.NoMockCredentialsProvider(t)
-	c := NewClient(WithCredentialsProvider(provider))
+	provider1 := Credentials("provider1", "")
+	provider2 := Credentials("provider2", "")
+	c := NewClient(
+		WithCredentialsProvider(provider2),
+		WithCredentialsProvider(provider1),
+	)
 
-	expected := []CredentialsProvider{provider}
+	expected := chainCredentialsProviders(
+		Credentials("", ""),
+		provider1,
+		provider2,
+		CredentialsFromEnv(),
+	)
+
+	assert.Equal(t, expected, c.config.credentials)
+}
+
+func TestWithCredentialsProviderAtLast(t *testing.T) {
+	t.Parallel()
+
+	provider1 := Credentials("provider1", "")
+	provider2 := Credentials("provider2", "")
+	c := NewClient(
+		WithCredentialsProviderAtLast(provider2),
+		WithCredentialsProviderAtLast(provider1),
+	)
+
+	expected := chainCredentialsProviders(
+		Credentials("", ""),
+		CredentialsFromEnv(),
+		provider2,
+		provider1,
+	)
 
 	assert.Equal(t, expected, c.config.credentials)
 }
@@ -83,12 +111,24 @@ func TestWithCredentialsProvider(t *testing.T) {
 func TestWithTokenProvider(t *testing.T) {
 	t.Parallel()
 
-	provider := authMock.NoMockTokenProvider(t)
-	c := NewClient(WithTokenProvider(provider))
+	provider1 := authMock.MockTokenProvider(func(p *authMock.TokenProvider) {
+		// provider 1.
+		p.On("Token", context.Background()).Return(1).Maybe()
+	})(t)
 
-	expected := []auth.TokenProvider{provider}
+	provider2 := authMock.MockTokenProvider(func(p *authMock.TokenProvider) {
+		// provider 2.
+		p.On("Token", context.Background()).Return(2).Maybe()
+	})(t)
 
-	assert.Equal(t, expected, c.config.tokens)
+	c := NewClient(
+		WithTokenProvider(provider1),
+		WithTokenProvider(provider2),
+	)
+
+	expected := chainTokenProviders(provider2, provider1)
+
+	assert.Equal(t, *expected, (*c.token)[0:len(*c.token)-1])
 }
 
 func TestWithTokenStorage(t *testing.T) {
