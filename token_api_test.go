@@ -3,6 +3,7 @@ package n26api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ func TestApiTokenProvider_GetToken(t *testing.T) {
 	password := "jane.doe"
 	cred := Credentials(username, password)
 	deviceID := uuid.New()
+	storageKey := fmt.Sprintf("%s:%s", username, deviceID.String())
 
 	configureTimeout := func(_ *testing.T, p *apiTokenProvider) {
 		// Timeout: 175ms.
@@ -39,11 +41,11 @@ func TestApiTokenProvider_GetToken(t *testing.T) {
 		expectedError string
 	}{
 		{
-			scenario:   "could not get token from token",
+			scenario:   "could not get token from storage",
 			mockServer: testkit.MockEmptyServer(),
 			configure: func(t *testing.T, p *apiTokenProvider) { // nolint: thelper
 				s := authMock.MockTokenStorage(func(s *authMock.TokenStorage) {
-					s.On("Get", context.Background(), "john.doe").
+					s.On("Get", context.Background(), storageKey).
 						Return(auth.OAuthToken{}, errors.New("get token error"))
 				})(t)
 
@@ -118,10 +120,10 @@ func TestApiTokenProvider_GetToken(t *testing.T) {
 				configureTimeout(t, p)
 
 				s := authMock.MockTokenStorage(func(s *authMock.TokenStorage) {
-					s.On("Get", context.Background(), "john.doe").
+					s.On("Get", context.Background(), storageKey).
 						Return(auth.OAuthToken{}, nil)
 
-					s.On("Set", context.Background(), "john.doe", mock.Anything).
+					s.On("Set", context.Background(), storageKey, mock.Anything).
 						Return(errors.New("set token error"))
 				})(t)
 
@@ -164,6 +166,43 @@ func TestApiTokenProvider_GetToken(t *testing.T) {
 				assert.Empty(t, token)
 				assert.EqualError(t, err, tc.expectedError)
 			}
+		})
+	}
+}
+
+func TestApiTokenProvider_GetToken_MissingCredentials(t *testing.T) {
+	t.Parallel()
+
+	deviceID := uuid.New()
+
+	testCases := []struct {
+		scenario      string
+		credentials   CredentialsProvider
+		expectedError string
+	}{
+		{
+			scenario:      "missing username",
+			credentials:   Credentials("", "password"),
+			expectedError: "could not get token: missing username",
+		},
+		{
+			scenario:      "missing password",
+			credentials:   Credentials("username", ""),
+			expectedError: "could not get token: missing password",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.scenario, func(t *testing.T) {
+			t.Parallel()
+
+			p := newAPITokenProvider(tc.credentials, deviceID)
+
+			token, err := p.Token(context.Background())
+
+			assert.Empty(t, token)
+			assert.EqualError(t, err, tc.expectedError)
 		})
 	}
 }
@@ -217,6 +256,7 @@ func TestApiTokenProvider_RefreshToken(t *testing.T) {
 	deviceID := uuid.New()
 	timestamp := time.Now()
 	refreshTTL := time.Hour
+	storageKey := fmt.Sprintf("%s:%s", username, deviceID.String())
 
 	mockClock := clock.Mock(func(c *clock.Clock) {
 		// 1st step: Get token.
@@ -255,7 +295,7 @@ func TestApiTokenProvider_RefreshToken(t *testing.T) {
 			),
 			configureStep2: func(t *testing.T, p *apiTokenProvider, svr *testkit.Server) { // nolint: thelper
 				s := authMock.MockTokenStorage(func(s *authMock.TokenStorage) {
-					s.On("Get", context.Background(), "john.doe").
+					s.On("Get", context.Background(), storageKey).
 						Return(
 							auth.OAuthToken{
 								AccessToken:      svr.AccessToken(),
@@ -266,7 +306,7 @@ func TestApiTokenProvider_RefreshToken(t *testing.T) {
 							nil,
 						)
 
-					s.On("Set", context.Background(), "john.doe", mock.Anything).
+					s.On("Set", context.Background(), storageKey, mock.Anything).
 						Return(errors.New("set token error"))
 				})(t)
 

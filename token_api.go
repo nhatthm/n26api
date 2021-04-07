@@ -2,6 +2,8 @@ package n26api
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -13,6 +15,13 @@ import (
 	"github.com/nhatthm/n26api/internal/api"
 	"github.com/nhatthm/n26api/pkg/auth"
 	"github.com/nhatthm/n26api/pkg/util"
+)
+
+var (
+	// ErrUsernameIsEmpty indicates that the username is empty.
+	ErrUsernameIsEmpty = errors.New("missing username")
+	// ErrPasswordIsEmpty indicates that the username is empty.
+	ErrPasswordIsEmpty = errors.New("missing password")
 )
 
 var _ auth.TokenProvider = (*apiTokenProvider)(nil)
@@ -244,8 +253,18 @@ func (p *apiTokenProvider) Token(ctx context.Context) (auth.Token, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	username := p.credentials.Username()
+	if username == "" {
+		return "", ctxd.WrapError(ctx, ErrUsernameIsEmpty, "could not get token")
+	}
+
+	password := p.credentials.Password()
+	if password == "" {
+		return "", ctxd.WrapError(ctx, ErrPasswordIsEmpty, "could not get token")
+	}
+
+	key := fmt.Sprintf("%s:%s", username, p.deviceID.String())
 	now := p.clock.Now()
-	key := p.credentials.Username()
 
 	token, err := p.getToken(ctx, key)
 	if err != nil {
