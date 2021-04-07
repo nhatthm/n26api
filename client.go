@@ -83,12 +83,13 @@ func NewClient(options ...Option) *Client {
 func initTokenProvider(cfg *config, c Clock) auth.TokenProvider {
 	credentials := chainCredentialsProviders(
 		CredentialsFromEnv(),
-		Credentials(cfg.username, cfg.password),
 	)
 
 	for _, p := range cfg.credentials {
 		credentials.chain(p)
 	}
+
+	credentials.chain(Credentials(cfg.username, cfg.password))
 
 	apiToken := newAPITokenProvider(credentials, cfg.deviceID).
 		WithBaseURL(cfg.baseURL).
