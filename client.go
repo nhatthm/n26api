@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/nhatthm/go-clock"
 
 	"github.com/nhatthm/n26api/internal/api"
 	"github.com/nhatthm/n26api/pkg/auth"
@@ -26,7 +27,7 @@ type Option func(c *Client)
 type Client struct {
 	api   *api.Client
 	token auth.TokenProvider
-	clock Clock
+	clock clock.Clock
 
 	config *config
 }
@@ -66,7 +67,7 @@ func NewClient(options ...Option) *Client {
 			transactionsPageSize: transactionsPageSize,
 		},
 
-		clock: liveClock{},
+		clock: clock.New(),
 	}
 
 	for _, o := range options {
@@ -80,7 +81,7 @@ func NewClient(options ...Option) *Client {
 	return c
 }
 
-func initTokenProvider(cfg *config, c Clock) auth.TokenProvider {
+func initTokenProvider(cfg *config, c clock.Clock) auth.TokenProvider {
 	credentials := chainCredentialsProviders(
 		CredentialsFromEnv(),
 	)

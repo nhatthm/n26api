@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	mockClock "github.com/nhatthm/go-clock/mock"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nhatthm/n26api/pkg/auth"
@@ -102,7 +103,7 @@ func TestWithTokenStorage(t *testing.T) {
 func TestWithClock(t *testing.T) {
 	t.Parallel()
 
-	clock := testkit.NoMockClock(t)
+	clock := mockClock.NoMock(t)
 	c := NewClient(WithClock(clock))
 
 	assert.Equal(t, clock, c.clock)

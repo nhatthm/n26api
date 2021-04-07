@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	clock "github.com/nhatthm/go-clock/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -180,7 +181,7 @@ func TestApiTokenProvider_GetTokenFromCache(t *testing.T) {
 		testkit.WithAuthSuccess(username, password, deviceID),
 	)(t)
 
-	c := testkit.MockClock(func(c *testkit.Clock) {
+	c := clock.Mock(func(c *clock.Clock) {
 		c.On("Now").Return(timestamp).Once()
 		// 2nd is after 4 minutes to check TTL.
 		c.On("Now").Return(timestamp.Add(4 * time.Minute)).Once()
@@ -217,7 +218,7 @@ func TestApiTokenProvider_RefreshToken(t *testing.T) {
 	timestamp := time.Now()
 	refreshTTL := time.Hour
 
-	mockClock := testkit.MockClock(func(c *testkit.Clock) {
+	mockClock := clock.Mock(func(c *clock.Clock) {
 		// 1st step: Get token.
 		c.On("Now").Return(timestamp).Once()
 		// 2nd step: Refresh token.
@@ -336,7 +337,7 @@ func TestApiTokenProvider_TokenExpired(t *testing.T) {
 		testkit.WithAuthSuccess(username, password, deviceID),
 	)(t)
 
-	c := testkit.MockClock(func(c *testkit.Clock) {
+	c := clock.Mock(func(c *clock.Clock) {
 		// 1st step: Get token.
 		c.On("Now").Return(timestamp).Once()
 		// 2nd step: Refresh token.

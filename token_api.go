@@ -8,6 +8,7 @@ import (
 
 	"github.com/bool64/ctxd"
 	"github.com/google/uuid"
+	"github.com/nhatthm/go-clock"
 
 	"github.com/nhatthm/n26api/internal/api"
 	"github.com/nhatthm/n26api/pkg/auth"
@@ -22,7 +23,7 @@ type apiTokenProvider struct {
 	api         *api.Client
 	credentials CredentialsProvider
 	storage     auth.TokenStorage
-	clock       Clock
+	clock       clock.Clock
 
 	deviceID uuid.UUID
 
@@ -231,7 +232,7 @@ func (p *apiTokenProvider) WithRefreshTTL(ttl time.Duration) *apiTokenProvider {
 	return p
 }
 
-func (p *apiTokenProvider) WithClock(clock Clock) *apiTokenProvider {
+func (p *apiTokenProvider) WithClock(clock clock.Clock) *apiTokenProvider {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.clock = clock
@@ -282,7 +283,7 @@ func newAPITokenProvider(
 		api:         c,
 		credentials: credentials,
 		storage:     NewInMemoryTokenStorage(),
-		clock:       liveClock{},
+		clock:       clock.New(),
 
 		deviceID: deviceID,
 

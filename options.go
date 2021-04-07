@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/nhatthm/go-clock"
 
 	"github.com/nhatthm/n26api/pkg/auth"
 )
@@ -73,7 +74,7 @@ func WithTokenStorage(storage auth.TokenStorage) Option {
 }
 
 // WithClock sets the clock (for testing purpose).
-func WithClock(clock Clock) Option {
+func WithClock(clock clock.Clock) Option {
 	return func(c *Client) {
 		c.clock = clock
 	}
