@@ -50,6 +50,11 @@ type config struct {
 	transactionsPageSize int64
 }
 
+// DeviceID returns device ID.
+func (c *Client) DeviceID() uuid.UUID {
+	return c.config.deviceID
+}
+
 // NewClient initiates a new transaction.Finder.
 func NewClient(options ...Option) *Client {
 	c := &Client{
