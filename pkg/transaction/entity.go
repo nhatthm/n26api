@@ -11,49 +11,49 @@ import (
 type Transaction struct {
 	// Format: uuid.
 	// Required.
-	ID uuid.UUID `json:"id"`
+	ID uuid.UUID `json:"id" csv:"id" table:"id"`
 	// Format: uuid.
 	// Required.
-	UserID               uuid.UUID `json:"userId"`
-	Type                 string    `json:"type"`         // Required.
-	Amount               float64   `json:"amount"`       // Required.
-	CurrencyCode         string    `json:"currencyCode"` // Required.
-	OriginalAmount       float64   `json:"originalAmount,omitempty"`
-	OriginalCurrency     string    `json:"originalCurrency,omitempty"`
-	ExchangeRate         float64   `json:"exchangeRate,omitempty"`
-	MerchantCity         string    `json:"merchantCity,omitempty"`
-	VisibleTS            int64     `json:"visibleTS"` // Required.
-	Mcc                  int64     `json:"mcc,omitempty"`
-	MccGroup             int64     `json:"mccGroup,omitempty"`
-	MerchantName         string    `json:"merchantName,omitempty"`
-	Recurring            bool      `json:"recurring,omitempty"`
-	PartnerBankName      string    `json:"partnerBankName,omitempty"`
-	PartnerBic           string    `json:"partnerBic,omitempty"`
-	PartnerBcn           string    `json:"partnerBcn,omitempty"`
-	PartnerAccountIsSepa bool      `json:"partnerAccountIsSepa,omitempty"`
-	PartnerName          string    `json:"partnerName,omitempty"`
+	UserID               uuid.UUID `json:"userId" csv:"userId" table:"userId"`
+	Type                 string    `json:"type" csv:"type" table:"type"`                         // Required.
+	Amount               float64   `json:"amount" csv:"amount" table:"amount"`                   // Required.
+	CurrencyCode         string    `json:"currencyCode" csv:"currencyCode" table:"currencyCode"` // Required.
+	OriginalAmount       float64   `json:"originalAmount,omitempty" csv:"originalAmount" table:"originalAmount"`
+	OriginalCurrency     string    `json:"originalCurrency,omitempty" csv:"originalCurrency" table:"originalCurrency"`
+	ExchangeRate         float64   `json:"exchangeRate,omitempty" csv:"exchangeRate" table:"exchangeRate"`
+	MerchantCity         string    `json:"merchantCity,omitempty" csv:"merchantCity" table:"merchantCity"`
+	VisibleTS            int64     `json:"visibleTS" csv:"visibleTS" table:"visibleTS"` // Required.
+	Mcc                  int64     `json:"mcc,omitempty" csv:"mcc" table:"mcc"`
+	MccGroup             int64     `json:"mccGroup,omitempty" csv:"mccGroup" table:"mccGroup"`
+	MerchantName         string    `json:"merchantName,omitempty" csv:"merchantName" table:"merchantName"`
+	Recurring            bool      `json:"recurring,omitempty" csv:"recurring" table:"recurring"`
+	PartnerBankName      string    `json:"partnerBankName,omitempty" csv:"partnerBankName" table:"partnerBankName"`
+	PartnerBic           string    `json:"partnerBic,omitempty" csv:"partnerBic" table:"partnerBic"`
+	PartnerBcn           string    `json:"partnerBcn,omitempty" csv:"partnerBcn" table:"partnerBcn"`
+	PartnerAccountIsSepa bool      `json:"partnerAccountIsSepa,omitempty" csv:"partnerAccountIsSepa" table:"partnerAccountIsSepa"`
+	PartnerName          string    `json:"partnerName,omitempty" csv:"partnerName" table:"partnerName"`
 	// Format: uuid.
 	// Required.
-	AccountID           uuid.UUID `json:"accountId"`
-	PartnerIban         string    `json:"partnerIban,omitempty"`
-	PartnerAccountBan   string    `json:"partnerAccountBan,omitempty"`
-	Category            string    `json:"category"`         // Required.
-	CardID              uuid.UUID `json:"cardId,omitempty"` // Format: uuid.
-	ReferenceText       string    `json:"referenceText,omitempty"`
-	UserAccepted        int64     `json:"userAccepted,omitempty"`
-	UserCertified       int64     `json:"userCertified"`     // Required.
-	Pending             bool      `json:"pending"`           // Required.
-	Nature              string    `json:"transactionNature"` // Required.
-	CreatedTS           int64     `json:"createdTS"`         // Required.
-	MerchantCountry     int64     `json:"merchantCountry,omitempty"`
-	MerchantCountryCode int64     `json:"merchantCountryCode,omitempty"`
+	AccountID           uuid.UUID `json:"accountId" csv:"accountId" table:"accountId"`
+	PartnerIban         string    `json:"partnerIban,omitempty" csv:"partnerIban" table:"partnerIban"`
+	PartnerAccountBan   string    `json:"partnerAccountBan,omitempty" csv:"partnerAccountBan" table:"partnerAccountBan"`
+	Category            string    `json:"category" csv:"category" table:"category"`     // Required.
+	CardID              uuid.UUID `json:"cardId,omitempty" csv:"cardId" table:"cardId"` // Format: uuid.
+	ReferenceText       string    `json:"referenceText,omitempty" csv:"referenceText" table:"referenceText"`
+	UserAccepted        int64     `json:"userAccepted,omitempty" csv:"userAccepted" table:"userAccepted"`
+	UserCertified       int64     `json:"userCertified" csv:"userCertified" table:"userCertified"`             // Required.
+	Pending             bool      `json:"pending" csv:"pending" table:"pending"`                               // Required.
+	Nature              string    `json:"transactionNature" csv:"transactionNature" table:"transactionNature"` // Required.
+	CreatedTS           int64     `json:"createdTS" csv:"createdTS" table:"createdTS"`                         // Required.
+	MerchantCountry     int64     `json:"merchantCountry,omitempty" csv:"merchantCountry" table:"merchantCountry"`
+	MerchantCountryCode int64     `json:"merchantCountryCode,omitempty" csv:"merchantCountryCode" table:"merchantCountryCode"`
 	// Format: uuid.
 	// Required.
-	SmartLinkID    uuid.UUID `json:"smartLinkId"`
-	SmartContactID uuid.UUID `json:"smartContactId,omitempty"` // Format: uuid.
+	SmartLinkID    uuid.UUID `json:"smartLinkId" csv:"smartLinkId" table:"smartLinkId"`
+	SmartContactID uuid.UUID `json:"smartContactId,omitempty" csv:"smartContactId" table:"smartContactId"` // Format: uuid.
 	// Format: uuid.
 	// Required.
-	LinkID       uuid.UUID `json:"linkId"`
-	TxnCondition string    `json:"txnCondition,omitempty"`
-	Confirmed    int64     `json:"confirmed"` // Required.
+	LinkID       uuid.UUID `json:"linkId" csv:"linkId" table:"linkId"`
+	TxnCondition string    `json:"txnCondition,omitempty" csv:"txnCondition" table:"txnCondition"`
+	Confirmed    int64     `json:"confirmed" csv:"confirmed" table:"confirmed"` // Required.
 }
