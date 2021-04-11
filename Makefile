@@ -50,7 +50,7 @@ generate-transaction: $(JSON_CLI)
 			'#/components/schemas/Transaction' \
 		--def-ptr '#/components/schemas' \
 		--package-name transaction \
-		--name-tags csv table \
+		--name-tags csv \
 		--output ./pkg/transaction/entity.go && \
 		gofmt -w ./pkg/transaction/entity.go
 
