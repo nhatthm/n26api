@@ -8,10 +8,10 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/google/uuid v1.2.0 h1:qJYtXnJRWmpe7m/3XlyhrsLrEURqHRM2kxzoxXqyUDs=
 github.com/google/uuid v1.2.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/nhatthm/go-clock v0.3.0 h1:uarVFdBCOQm+vFnRFh5Q/gC3AI+vKQCxZdWp26P5IfA=
-github.com/nhatthm/go-clock v0.3.0/go.mod h1:r76DL7Tmu0OLjAWyppNYW9fDhIagLHH/uHLwqSYJfsg=
-github.com/nhatthm/httpmock v0.4.6 h1:4/+dOMmdKw/WUH6Z1X1zvVxViGAn2yY4+d1lbUrry3A=
-github.com/nhatthm/httpmock v0.4.6/go.mod h1:t25iJhLZKE5PiPkpVyriqXB7f1EFgzDVw7sVJEINRZg=
+github.com/nhatthm/go-clock v0.5.0 h1:spjq7GOqJe8xW+5fArWFHJsQKL2/YQCJtlW1tyeXAXo=
+github.com/nhatthm/go-clock v0.5.0/go.mod h1:KASu97ux5p0fpVsazI4sGJN+HlzeobKsvEtjaFQUXjc=
+github.com/nhatthm/httpmock v0.5.0 h1:KoYD0/t3LwMQfQtQ7uSgBvAGZBE46cg+kORg0F3piu8=
+github.com/nhatthm/httpmock v0.5.0/go.mod h1:SKgeH7a7UNWjJ+NLIlbd784FQEtI7yTGB8CtZzWgsqE=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
