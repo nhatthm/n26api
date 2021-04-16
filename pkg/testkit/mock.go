@@ -1,13 +1,9 @@
 package testkit
 
 import (
-	"strings"
-
 	"github.com/google/uuid"
 	"github.com/nhatthm/httpmock"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/nhatthm/n26api/pkg/auth"
 )
 
 // TestingT is an alias of httpmock.TestingT.
@@ -39,31 +35,7 @@ func MockServer(
 // MockEmptyServer mocks a N26 API server.
 func MockEmptyServer(mocks ...ServerOption) ServerMocker {
 	return func(t TestingT) *Server {
-		s := &Server{
-			Server: httpmock.NewServer(t),
-			userID: uuid.New(),
-		}
-
-		s.WithAuthAuthorization(auth.BasicAuthUsername, auth.BasicAuthPassword).
-			WithDefaultResponseHeaders(httpmock.Header{
-				"Content-Type": "application/json",
-			})
-
-		s.WithRequestMatcher(
-			httpmock.SequentialRequestMatcher(
-				httpmock.WithBodyMatcher(func(t TestingT, expected, body []byte) bool {
-					replaced := strings.ReplaceAll(string(expected), "{{MFAToken}}", s.mfaToken.String())
-					replaced = strings.ReplaceAll(replaced, "{{RefreshToken}}", string(s.refreshToken))
-
-					return assert.Equal(t, []byte(replaced), body)
-				}),
-				httpmock.WithHeaderMatcher(func(t httpmock.TestingT, expected, header string) bool {
-					replaced := strings.ReplaceAll(expected, "{{accessToken}}", string(s.accessToken))
-
-					return assert.Equal(t, replaced, header)
-				}),
-			),
-		)
+		s := NewServer(t)
 
 		for _, m := range mocks {
 			m(s)

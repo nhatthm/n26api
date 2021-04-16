@@ -3,10 +3,12 @@ package testkit
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/google/uuid"
 	"github.com/nhatthm/httpmock"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/nhatthm/n26api/pkg/auth"
 	"github.com/nhatthm/n26api/pkg/util"
@@ -187,4 +189,35 @@ func (s *Server) ExpectPatch(requestURI string) *Request {
 //   Server.ExpectDelete("/path")
 func (s *Server) ExpectDelete(requestURI string) *Request {
 	return s.Expect(http.MethodDelete, requestURI)
+}
+
+// NewServer creates a new Server.
+func NewServer(t TestingT) *Server {
+	s := &Server{
+		Server: httpmock.NewServer(t),
+		userID: uuid.New(),
+	}
+
+	s.WithAuthAuthorization(auth.BasicAuthUsername, auth.BasicAuthPassword).
+		WithDefaultResponseHeaders(httpmock.Header{
+			"Content-Type": "application/json",
+		})
+
+	s.WithRequestMatcher(
+		httpmock.SequentialRequestMatcher(
+			httpmock.WithBodyMatcher(func(t TestingT, expected, body []byte) bool {
+				replaced := strings.ReplaceAll(string(expected), "{{MFAToken}}", s.mfaToken.String())
+				replaced = strings.ReplaceAll(replaced, "{{RefreshToken}}", string(s.refreshToken))
+
+				return assert.Equal(t, []byte(replaced), body)
+			}),
+			httpmock.WithHeaderMatcher(func(t httpmock.TestingT, expected, header string) bool {
+				replaced := strings.ReplaceAll(expected, "{{accessToken}}", string(s.accessToken))
+
+				return assert.Equal(t, replaced, header)
+			}),
+		),
+	)
+
+	return s
 }
