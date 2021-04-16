@@ -14,6 +14,8 @@ import (
 const (
 	// BaseURL is N26 API Base URL.
 	BaseURL = "https://api.tech26.de"
+	// DefaultPageSize is the default page size while requesting to N26.
+	DefaultPageSize int64 = 50
 
 	envDeviceID = "N26_DEVICE"
 )
@@ -69,7 +71,7 @@ func NewClient(options ...Option) *Client {
 			mfaTimeout: time.Minute,
 			mfaWait:    5 * time.Second,
 
-			transactionsPageSize: transactionsPageSize,
+			transactionsPageSize: DefaultPageSize,
 		},
 
 		token: newChainTokenProvider(),

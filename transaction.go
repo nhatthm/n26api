@@ -11,10 +11,6 @@ import (
 	"github.com/nhatthm/n26api/pkg/util"
 )
 
-const (
-	transactionsPageSize int64 = 50
-)
-
 var _ transaction.Finder = (*Client)(nil)
 
 // WithTransactionsPageSize sets page size limit for finding transactions.
