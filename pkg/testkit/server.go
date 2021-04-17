@@ -211,7 +211,7 @@ func NewServer(t TestingT) *Server {
 
 				return assert.Equal(t, []byte(replaced), body)
 			}),
-			httpmock.WithHeaderMatcher(func(t httpmock.TestingT, expected, header string) bool {
+			httpmock.WithHeaderMatcher(func(t TestingT, expected, header string) bool {
 				replaced := strings.ReplaceAll(expected, "{{accessToken}}", string(s.accessToken))
 
 				return assert.Equal(t, replaced, header)
