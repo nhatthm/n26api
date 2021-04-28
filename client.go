@@ -13,7 +13,7 @@ import (
 
 const (
 	// BaseURL is N26 API Base URL.
-	BaseURL = "https://api.tech26.de"
+	BaseURL = api.DefaultBaseURL
 	// DefaultPageSize is the default page size while requesting to N26.
 	DefaultPageSize int64 = 50
 
