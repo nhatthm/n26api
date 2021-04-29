@@ -1,9 +1,6 @@
 package testkit
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
 	"sync"
 	"testing"
 	"time"
@@ -25,66 +22,63 @@ func TestWithFindAllTransactionsInRange(t *testing.T) {
 	id2 := uuid.New()
 	id3 := uuid.New()
 
-	expectRequest := func(requestURI string, transactions []transaction.Transaction) *Request {
-		return &Request{
-			RequestURI: requestURI,
-			Do: func(r *http.Request) ([]byte, error) {
-				return json.Marshal(transactions)
-			},
-		}
-	}
-
 	testCases := []struct {
 		scenario     string
 		transactions []transaction.Transaction
-		expected     []*Request
+		expect       func() []*Request
 	}{
 		{
 			scenario:     "first page is empty",
 			transactions: []transaction.Transaction{},
-			expected: []*Request{
-				expectRequest(
-					"/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000",
-					[]transaction.Transaction{},
-				),
+			expect: func() []*Request {
+				s := NewServer(t)
+
+				s.ExpectGet("/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
+					ReturnJSON([]transaction.Transaction{})
+
+				return s.ExpectedRequests
 			},
 		},
 		{
 			scenario:     "first page size is less than the limit",
 			transactions: []transaction.Transaction{{ID: id1}},
-			expected: []*Request{
-				expectRequest(
-					"/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000",
-					[]transaction.Transaction{{ID: id1}},
-				),
+			expect: func() []*Request {
+				s := NewServer(t)
+
+				s.ExpectGet("/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
+					ReturnJSON([]transaction.Transaction{{ID: id1}})
+
+				return s.ExpectedRequests
 			},
 		},
 		{
 			scenario:     "first page size is same as the limit",
 			transactions: []transaction.Transaction{{ID: id1}, {ID: id2}},
-			expected: []*Request{
-				expectRequest(
-					"/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000",
-					[]transaction.Transaction{{ID: id1}, {ID: id2}},
-				),
-				expectRequest(
-					fmt.Sprintf("/api/smrt/transactions?from=1577934245000&lastId=%s&limit=2&to=1580612645000", id2.String()),
-					[]transaction.Transaction{},
-				),
+			expect: func() []*Request {
+				s := NewServer(t)
+
+				s.ExpectGet("/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
+					ReturnJSON([]transaction.Transaction{{ID: id1}, {ID: id2}})
+
+				s.ExpectGet(httpmock.Exactf("/api/smrt/transactions?from=1577934245000&lastId=%s&limit=2&to=1580612645000", id2.String())).
+					ReturnJSON([]transaction.Transaction{})
+
+				return s.ExpectedRequests
 			},
 		},
 		{
 			scenario:     "two pages",
 			transactions: []transaction.Transaction{{ID: id1}, {ID: id2}, {ID: id3}},
-			expected: []*Request{
-				expectRequest(
-					"/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000",
-					[]transaction.Transaction{{ID: id1}, {ID: id2}},
-				),
-				expectRequest(
-					fmt.Sprintf("/api/smrt/transactions?from=1577934245000&lastId=%s&limit=2&to=1580612645000", id2.String()),
-					[]transaction.Transaction{{ID: id3}},
-				),
+			expect: func() []*Request {
+				s := NewServer(t)
+
+				s.ExpectGet("/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
+					ReturnJSON([]transaction.Transaction{{ID: id1}, {ID: id2}})
+
+				s.ExpectGet(httpmock.Exactf("/api/smrt/transactions?from=1577934245000&lastId=%s&limit=2&to=1580612645000", id2.String())).
+					ReturnJSON([]transaction.Transaction{{ID: id3}})
+
+				return s.ExpectedRequests
 			},
 		},
 	}
@@ -104,16 +98,17 @@ func TestWithFindAllTransactionsInRange(t *testing.T) {
 			}
 
 			WithFindAllTransactionsInRange(from, to, pageSize, tc.transactions)(s)
+			expected := tc.expect()
 
-			assert.Equal(t, len(tc.expected), len(s.ExpectedRequests))
+			assert.Equal(t, len(expected), len(s.ExpectedRequests))
 
-			for i, expected := range tc.expected {
+			for i, expected := range expected {
 				actual := s.ExpectedRequests[i]
 
-				expectedBody, err := expected.Do(nil)
+				expectedBody, err := expected.Handle(nil)
 				assert.NoError(t, err)
 
-				actualBody, err := actual.Do(nil)
+				actualBody, err := actual.Handle(nil)
 				assert.NoError(t, err)
 
 				assert.Equal(t, expected.RequestURI, actual.RequestURI)

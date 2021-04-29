@@ -1,6 +1,7 @@
 package testkit
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -114,8 +115,11 @@ func TestServer_ExpectWithBasicAuth(t *testing.T) {
 	}
 
 	assert.Equal(t, http.MethodGet, s.ExpectedRequests[0].Method)
-	assert.Equal(t, "/", s.ExpectedRequests[0].RequestURI)
-	assert.Equal(t, expectedHeaders, s.ExpectedRequests[0].RequestHeader)
+	assert.Equal(t, httpmock.Exact("/"), s.ExpectedRequests[0].RequestURI)
+
+	for key, matcher := range s.ExpectedRequests[0].RequestHeader {
+		assert.True(t, matcher.Match(expectedHeaders[key]))
+	}
 
 	s.ResetExpectations()
 }
@@ -123,23 +127,31 @@ func TestServer_ExpectWithBasicAuth(t *testing.T) {
 func TestServer_Expect(t *testing.T) {
 	t.Parallel()
 
+	accessToken := uuid.New()
+
 	s := MockEmptyServer(func(s *Server) {
+		s.WithAccessToken(accessToken)
 		s.Expect(http.MethodGet, "/")
 	})(t)
 
 	expectedHeaders := httpmock.Header{
-		"Authorization": "Bearer {{accessToken}}",
+		"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 	}
 
 	assert.Equal(t, http.MethodGet, s.ExpectedRequests[0].Method)
-	assert.Equal(t, "/", s.ExpectedRequests[0].RequestURI)
-	assert.Equal(t, expectedHeaders, s.ExpectedRequests[0].RequestHeader)
+	assert.Equal(t, httpmock.Exact("/"), s.ExpectedRequests[0].RequestURI)
+
+	for key, matcher := range s.ExpectedRequests[0].RequestHeader {
+		assert.True(t, matcher.Match(expectedHeaders[key]))
+	}
 
 	s.ResetExpectations()
 }
 
 func TestServer_ExpectAliases(t *testing.T) {
 	t.Parallel()
+
+	accessToken := uuid.New()
 
 	testCases := []struct {
 		scenario       string
@@ -196,14 +208,18 @@ func TestServer_ExpectAliases(t *testing.T) {
 			t.Parallel()
 
 			s := MockEmptyServer(tc.mockServer)(t)
+			s.WithAccessToken(accessToken)
 
 			expectedHeaders := httpmock.Header{
-				"Authorization": "Bearer {{accessToken}}",
+				"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 			}
 
 			assert.Equal(t, tc.expectedMethod, s.ExpectedRequests[0].Method)
-			assert.Equal(t, "/", s.ExpectedRequests[0].RequestURI)
-			assert.Equal(t, expectedHeaders, s.ExpectedRequests[0].RequestHeader)
+			assert.Equal(t, httpmock.Exact("/"), s.ExpectedRequests[0].RequestURI)
+
+			for key, matcher := range s.ExpectedRequests[0].RequestHeader {
+				assert.True(t, matcher.Match(expectedHeaders[key]))
+			}
 
 			s.ResetExpectations()
 		})

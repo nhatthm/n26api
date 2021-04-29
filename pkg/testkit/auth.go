@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/google/uuid"
+	"github.com/nhatthm/httpmock"
 
 	"github.com/nhatthm/n26api/internal/api"
 )
@@ -23,21 +24,27 @@ func expectAuthPasswordLogin(s *Server, username, password string, deviceID uuid
 func expectMFAChallenge(s *Server) *Request {
 	return s.ExpectWithBasicAuth(http.MethodPost, "/api/mfa/challenge").
 		WithHeader("device-token", s.DeviceID().String()).
-		WithBody(`{"challengeType":"oob","mfaToken":"{{MFAToken}}"}`)
+		WithBody(func() httpmock.Matcher {
+			return httpmock.Exactf(`{"challengeType":"oob","mfaToken":%q}`, s.mfaToken)
+		})
 }
 
 func expectConfirmLogin(s *Server) *Request {
 	return s.ExpectWithBasicAuth(http.MethodPost, "/oauth/token").
 		WithHeader("device-token", s.DeviceID().String()).
 		WithHeader("Content-Type", "application/x-www-form-urlencoded").
-		WithBody("grant_type=mfa_oob&mfaToken={{MFAToken}}")
+		WithBody(func() httpmock.Matcher {
+			return httpmock.Exactf("grant_type=mfa_oob&mfaToken=%s", s.mfaToken)
+		})
 }
 
 func expectRefreshToken(s *Server) *Request {
 	return s.ExpectWithBasicAuth(http.MethodPost, "/oauth/token").
 		WithHeader("device-token", s.DeviceID().String()).
 		WithHeader("Content-Type", "application/x-www-form-urlencoded").
-		WithBody("grant_type=refresh_token&refresh_token={{RefreshToken}}")
+		WithBody(func() httpmock.Matcher {
+			return httpmock.Exactf("grant_type=refresh_token&refresh_token=%s", s.refreshToken)
+		})
 }
 
 func returnToken(s *Server) func(_ *http.Request) ([]byte, error) {
@@ -119,7 +126,7 @@ func WithAuthPasswordLoginSuccess(username, password string, deviceID uuid.UUID)
 	return func(s *Server) {
 		expectAuthPasswordLogin(s, username, password, deviceID).
 			ReturnCode(http.StatusForbidden).
-			Handler(func(r *http.Request) ([]byte, error) {
+			WithHandler(func(r *http.Request) ([]byte, error) {
 				mfaToken := uuid.New()
 
 				s.WithMFAToken(mfaToken)
@@ -216,7 +223,7 @@ func WithAuthConfirmLoginSuccess() ServerOption {
 	return func(s *Server) {
 		expectConfirmLogin(s).
 			ReturnCode(http.StatusOK).
-			Handler(returnToken(s))
+			WithHandler(returnToken(s))
 	}
 }
 
@@ -252,7 +259,7 @@ func WithAuthRefreshTokenSuccess() ServerOption {
 	return func(s *Server) {
 		expectRefreshToken(s).
 			ReturnCode(http.StatusOK).
-			Handler(returnToken(s))
+			WithHandler(returnToken(s))
 	}
 }
 

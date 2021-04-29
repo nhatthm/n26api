@@ -3,13 +3,10 @@ package testkit
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"sync"
 
 	"github.com/google/uuid"
 	"github.com/nhatthm/httpmock"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/nhatthm/n26api/pkg/auth"
 	"github.com/nhatthm/n26api/pkg/util"
 )
@@ -136,58 +133,62 @@ func (s *Server) RefreshToken() auth.Token {
 }
 
 // ExpectWithBasicAuth expects a request with Basic Authorization.
-func (s *Server) ExpectWithBasicAuth(method, requestURI string) *Request {
-	return s.Expect(method, requestURI).
-		WithHeader("Authorization", s.BasicAuthorization())
+func (s *Server) ExpectWithBasicAuth(method string, requestURI interface{}) *Request {
+	return s.Server.Expect(method, requestURI).
+		WithHeader("Authorization", func() httpmock.Matcher {
+			return httpmock.Exact(s.BasicAuthorization())
+		})
 }
 
 // Expect expects a request with Bearer Authorization.
 //
 //    Server.Expect(http.MethodGet, "/path").
-func (s *Server) Expect(method, requestURI string) *Request {
+func (s *Server) Expect(method string, requestURI interface{}) *Request {
 	return s.Server.Expect(method, requestURI).
-		WithHeader("Authorization", "Bearer {{accessToken}}")
+		WithHeader("Authorization", func() httpmock.Matcher {
+			return httpmock.Exactf("Bearer %s", s.accessToken)
+		})
 }
 
 // ExpectGet expects a request with Bearer Authorization.
 //
 //   Server.ExpectGet("/path")
-func (s *Server) ExpectGet(requestURI string) *Request {
+func (s *Server) ExpectGet(requestURI interface{}) *Request {
 	return s.Expect(http.MethodGet, requestURI)
 }
 
 // ExpectHead expects a request with Bearer Authorization.
 //
 //   Server.ExpectHead("/path")
-func (s *Server) ExpectHead(requestURI string) *Request {
+func (s *Server) ExpectHead(requestURI interface{}) *Request {
 	return s.Expect(http.MethodHead, requestURI)
 }
 
 // ExpectPost expects a request with Bearer Authorization.
 //
 //   Server.ExpectPost("/path")
-func (s *Server) ExpectPost(requestURI string) *Request {
+func (s *Server) ExpectPost(requestURI interface{}) *Request {
 	return s.Expect(http.MethodPost, requestURI)
 }
 
 // ExpectPut expects a request with Bearer Authorization.
 //
 //   Server.ExpectPut("/path")
-func (s *Server) ExpectPut(requestURI string) *Request {
+func (s *Server) ExpectPut(requestURI interface{}) *Request {
 	return s.Expect(http.MethodPut, requestURI)
 }
 
 // ExpectPatch expects a request with Bearer Authorization.
 //
 //   Server.ExpectPatch("/path")
-func (s *Server) ExpectPatch(requestURI string) *Request {
+func (s *Server) ExpectPatch(requestURI interface{}) *Request {
 	return s.Expect(http.MethodPatch, requestURI)
 }
 
 // ExpectDelete expects a request with Bearer Authorization.
 //
 //   Server.ExpectDelete("/path")
-func (s *Server) ExpectDelete(requestURI string) *Request {
+func (s *Server) ExpectDelete(requestURI interface{}) *Request {
 	return s.Expect(http.MethodDelete, requestURI)
 }
 
@@ -202,22 +203,6 @@ func NewServer(t TestingT) *Server {
 		WithDefaultResponseHeaders(httpmock.Header{
 			"Content-Type": "application/json",
 		})
-
-	s.WithRequestMatcher(
-		httpmock.SequentialRequestMatcher(
-			httpmock.WithBodyMatcher(func(t TestingT, expected, body []byte) bool {
-				replaced := strings.ReplaceAll(string(expected), "{{MFAToken}}", s.mfaToken.String())
-				replaced = strings.ReplaceAll(replaced, "{{RefreshToken}}", string(s.refreshToken))
-
-				return assert.Equal(t, []byte(replaced), body)
-			}),
-			httpmock.WithHeaderMatcher(func(t TestingT, expected, header string) bool {
-				replaced := strings.ReplaceAll(expected, "{{accessToken}}", string(s.accessToken))
-
-				return assert.Equal(t, replaced, header)
-			}),
-		),
-	)
 
 	return s
 }

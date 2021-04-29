@@ -103,7 +103,9 @@ func TestMockEmptyServer(t *testing.T) {
 					s.WithMFAToken(mfaToken)
 					s.WithRefreshToken(refreshToken)
 					s.ExpectWithBasicAuth(http.MethodGet, "/").
-						WithBody("MFA Token: {{MFAToken}}\nRefresh Token: {{RefreshToken}}").
+						WithBody(func() httpmock.Matcher {
+							return httpmock.Exactf("MFA Token: %s\nRefresh Token: %s", s.MFAToken().String(), s.RefreshToken())
+						}).
 						Return(`{}`)
 				},
 			),
