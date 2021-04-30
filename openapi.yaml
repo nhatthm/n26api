@@ -8,7 +8,7 @@ info:
     email: "security@n26.com"
 
 servers:
-  - url: "https://api.tech26.de/"
+  - url: "https://api.tech26.de"
 
 security:
   - auth:

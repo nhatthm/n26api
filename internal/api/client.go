@@ -10,7 +10,7 @@ import (
 )
 
 // DefaultBaseURL is the default base URL for this service.
-const DefaultBaseURL = "https://api.tech26.de/"
+const DefaultBaseURL = "https://api.tech26.de"
 
 // Client is a REST service HTTP client.
 type Client struct {
