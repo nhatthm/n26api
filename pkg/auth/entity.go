@@ -6,6 +6,7 @@ import "time"
 type Token string
 
 // OAuthToken contains all relevant information to access to the service and refresh the token.
+// nolint:tagliatelle
 type OAuthToken struct {
 	AccessToken      Token     `json:"access_token"`
 	RefreshToken     Token     `json:"refresh_token"`
