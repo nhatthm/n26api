@@ -7,12 +7,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nhatthm/httpmock"
+	"github.com/nhatthm/httpmock/matcher"
+	"github.com/nhatthm/httpmock/planner"
+	"github.com/nhatthm/httpmock/request"
+
 	"github.com/nhatthm/n26api/pkg/auth"
 	"github.com/nhatthm/n26api/pkg/util"
 )
 
 // Request is an alias of httpmock.Request.
-type Request = httpmock.Request
+type Request = request.Request
 
 // Server is a wrapped httpmock.Server to provide more functionalities for testing N26 APIs.
 type Server struct {
@@ -27,6 +31,13 @@ type Server struct {
 	refreshToken auth.Token
 
 	mu sync.Mutex
+}
+
+// WithPlanner sets planner.
+func (s *Server) WithPlanner(p planner.Planner) *Server {
+	s.Server.WithPlanner(p)
+
+	return s
 }
 
 // WithAuthAuthorization sets Authorization credentials for asserting the /oauth/token request.
@@ -135,7 +146,7 @@ func (s *Server) RefreshToken() auth.Token {
 // ExpectWithBasicAuth expects a request with Basic Authorization.
 func (s *Server) ExpectWithBasicAuth(method string, requestURI interface{}) *Request {
 	return s.Server.Expect(method, requestURI).
-		WithHeader("Authorization", func() httpmock.Matcher {
+		WithHeader("Authorization", func() matcher.Matcher {
 			return httpmock.Exact(s.BasicAuthorization())
 		})
 }
@@ -145,7 +156,7 @@ func (s *Server) ExpectWithBasicAuth(method string, requestURI interface{}) *Req
 //    Server.Expect(http.MethodGet, "/path").
 func (s *Server) Expect(method string, requestURI interface{}) *Request {
 	return s.Server.Expect(method, requestURI).
-		WithHeader("Authorization", func() httpmock.Matcher {
+		WithHeader("Authorization", func() matcher.Matcher {
 			return httpmock.Exactf("Bearer %s", s.accessToken)
 		})
 }
@@ -195,7 +206,7 @@ func (s *Server) ExpectDelete(requestURI interface{}) *Request {
 // NewServer creates a new Server.
 func NewServer(t TestingT) *Server {
 	s := &Server{
-		Server: httpmock.NewServer(t),
+		Server: httpmock.NewServer().WithTest(t),
 		userID: uuid.New(),
 	}
 

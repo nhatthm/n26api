@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/nhatthm/go-matcher"
 	"github.com/nhatthm/httpmock"
 	"github.com/stretchr/testify/assert"
 
@@ -103,8 +104,8 @@ func TestMockEmptyServer(t *testing.T) {
 					s.WithMFAToken(mfaToken)
 					s.WithRefreshToken(refreshToken)
 					s.ExpectWithBasicAuth(http.MethodGet, "/").
-						WithBody(func() httpmock.Matcher {
-							return httpmock.Exactf("MFA Token: %s\nRefresh Token: %s", s.MFAToken().String(), s.RefreshToken())
+						WithBody(func() matcher.Matcher {
+							return matcher.Exactf("MFA Token: %s\nRefresh Token: %s", s.MFAToken().String(), s.RefreshToken())
 						}).
 						Return(`{}`)
 				},

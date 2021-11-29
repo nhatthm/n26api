@@ -1,13 +1,18 @@
 package testkit
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/nhatthm/httpmock"
+	httpMock "github.com/nhatthm/httpmock/mock/http"
+	plannerMock "github.com/nhatthm/httpmock/mock/planner"
+	"github.com/nhatthm/httpmock/request"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/nhatthm/n26api/pkg/auth"
 )
@@ -105,8 +110,21 @@ func TestServer_WithRefreshToken(t *testing.T) {
 func TestServer_ExpectWithBasicAuth(t *testing.T) {
 	t.Parallel()
 
-	s := MockEmptyServer(func(s *Server) {
-		s.WithAuthAuthorization("nativeweb", "")
+	var r *request.Request
+
+	p := plannerMock.Mock(func(p *plannerMock.Planner) {
+		p.On("Expect", mock.Anything).
+			Run(func(args mock.Arguments) {
+				r = args[0].(*request.Request)
+			})
+
+		p.On("IsEmpty").Return(true)
+	})(t)
+
+	MockEmptyServer(func(s *Server) {
+		s.WithPlanner(p).
+			WithAuthAuthorization("nativeweb", "")
+
 		s.ExpectWithBasicAuth(http.MethodGet, "/")
 	})(t)
 
@@ -114,14 +132,19 @@ func TestServer_ExpectWithBasicAuth(t *testing.T) {
 		"Authorization": "Basic bmF0aXZld2ViOg==",
 	}
 
-	assert.Equal(t, http.MethodGet, s.ExpectedRequests[0].Method)
-	assert.Equal(t, httpmock.Exact("/"), s.ExpectedRequests[0].RequestURI)
+	assert.Equal(t, http.MethodGet, request.Method(r))
+	assert.Equal(t, httpmock.Exact("/"), request.URIMatcher(r))
 
-	for key, matcher := range s.ExpectedRequests[0].RequestHeader {
-		assert.True(t, matcher.Match(expectedHeaders[key]))
+	requestHeader := request.HeaderMatcher(r)
+
+	assert.Len(t, requestHeader, 1)
+
+	for key, m := range requestHeader {
+		matched, err := m.Match(expectedHeaders[key])
+
+		assert.True(t, matched)
+		assert.NoError(t, err)
 	}
-
-	s.ResetExpectations()
 }
 
 func TestServer_Expect(t *testing.T) {
@@ -129,8 +152,21 @@ func TestServer_Expect(t *testing.T) {
 
 	accessToken := uuid.New()
 
-	s := MockEmptyServer(func(s *Server) {
-		s.WithAccessToken(accessToken)
+	var r *request.Request
+
+	p := plannerMock.Mock(func(p *plannerMock.Planner) {
+		p.On("Expect", mock.Anything).
+			Run(func(args mock.Arguments) {
+				r = args[0].(*request.Request)
+			})
+
+		p.On("IsEmpty").Return(true)
+	})(t)
+
+	MockEmptyServer(func(s *Server) {
+		s.WithPlanner(p).
+			WithAccessToken(accessToken)
+
 		s.Expect(http.MethodGet, "/")
 	})(t)
 
@@ -138,14 +174,19 @@ func TestServer_Expect(t *testing.T) {
 		"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 	}
 
-	assert.Equal(t, http.MethodGet, s.ExpectedRequests[0].Method)
-	assert.Equal(t, httpmock.Exact("/"), s.ExpectedRequests[0].RequestURI)
+	assert.Equal(t, http.MethodGet, request.Method(r))
+	assert.Equal(t, httpmock.Exact("/"), request.URIMatcher(r))
 
-	for key, matcher := range s.ExpectedRequests[0].RequestHeader {
-		assert.True(t, matcher.Match(expectedHeaders[key]))
+	requestHeader := request.HeaderMatcher(r)
+
+	assert.Len(t, requestHeader, 1)
+
+	for key, m := range requestHeader {
+		matched, err := m.Match(expectedHeaders[key])
+
+		assert.True(t, matched)
+		assert.NoError(t, err)
 	}
-
-	s.ResetExpectations()
 }
 
 func TestServer_ExpectAliases(t *testing.T) {
@@ -207,21 +248,63 @@ func TestServer_ExpectAliases(t *testing.T) {
 		t.Run(tc.scenario, func(t *testing.T) {
 			t.Parallel()
 
-			s := MockEmptyServer(tc.mockServer)(t)
+			var r *request.Request
+
+			p := plannerMock.Mock(func(p *plannerMock.Planner) {
+				p.On("Expect", mock.Anything).
+					Run(func(args mock.Arguments) {
+						r = args[0].(*request.Request)
+					})
+
+				p.On("IsEmpty").Return(true)
+			})(t)
+
+			s := MockEmptyServer(func(s *Server) {
+				s.WithPlanner(p)
+			}, tc.mockServer)(t)
+
 			s.WithAccessToken(accessToken)
 
 			expectedHeaders := httpmock.Header{
 				"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 			}
 
-			assert.Equal(t, tc.expectedMethod, s.ExpectedRequests[0].Method)
-			assert.Equal(t, httpmock.Exact("/"), s.ExpectedRequests[0].RequestURI)
+			assert.Equal(t, tc.expectedMethod, request.Method(r))
+			assert.Equal(t, httpmock.Exact("/"), request.URIMatcher(r))
 
-			for key, matcher := range s.ExpectedRequests[0].RequestHeader {
-				assert.True(t, matcher.Match(expectedHeaders[key]))
+			requestHeader := request.HeaderMatcher(r)
+
+			assert.Len(t, requestHeader, 1)
+
+			for key, m := range requestHeader {
+				matched, err := m.Match(expectedHeaders[key])
+
+				assert.True(t, matched)
+				assert.NoError(t, err)
 			}
-
-			s.ResetExpectations()
 		})
 	}
+}
+
+func handleRequestSuccess(t *testing.T, r *request.Request) ([]byte, error) {
+	t.Helper()
+
+	buf := new(bytes.Buffer)
+
+	w := httpMock.MockResponseWriter(func(w *httpMock.ResponseWriter) {
+		w.On("WriteHeader", httpmock.StatusOK)
+
+		w.On("Write", mock.Anything).
+			Run(func(args mock.Arguments) {
+				buf.Write(args[0].([]byte))
+			}).
+			Return(0, nil)
+	})(t)
+
+	err := request.Handle(r, w, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }

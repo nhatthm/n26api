@@ -1,11 +1,9 @@
 package n26api_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/nhatthm/n26api"
 )
@@ -16,22 +14,8 @@ const (
 )
 
 func TestCredentialsFromEnv(t *testing.T) {
-	currentUsername := os.Getenv(envUsername)
-	currentPassword := os.Getenv(envPassword)
-
-	t.Cleanup(func() {
-		err := os.Setenv(envUsername, currentUsername)
-		require.NoError(t, err)
-
-		err = os.Setenv(envPassword, currentPassword)
-		require.NoError(t, err)
-	})
-
-	err := os.Setenv(envUsername, "username")
-	require.NoError(t, err)
-
-	err = os.Setenv(envPassword, "password")
-	require.NoError(t, err)
+	t.Setenv(envUsername, "username")
+	t.Setenv(envPassword, "password")
 
 	p := n26api.CredentialsFromEnv()
 

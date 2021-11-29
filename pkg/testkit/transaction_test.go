@@ -7,7 +7,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nhatthm/httpmock"
+	plannerMock "github.com/nhatthm/httpmock/mock/planner"
+	"github.com/nhatthm/httpmock/request"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/nhatthm/n26api/pkg/transaction"
 )
@@ -23,62 +26,44 @@ func TestWithFindAllTransactionsInRange(t *testing.T) {
 	id3 := uuid.New()
 
 	testCases := []struct {
-		scenario     string
-		transactions []transaction.Transaction
-		expect       func() []*Request
+		scenario         string
+		transactions     []transaction.Transaction
+		expectedRequests []*Request
 	}{
 		{
 			scenario:     "first page is empty",
 			transactions: []transaction.Transaction{},
-			expect: func() []*Request {
-				s := NewServer(t)
-
-				s.ExpectGet("/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
-					ReturnJSON([]transaction.Transaction{})
-
-				return s.ExpectedRequests
+			expectedRequests: []*Request{
+				request.NewRequest(&sync.Mutex{}, httpmock.MethodGet, "/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
+					ReturnJSON([]transaction.Transaction{}),
 			},
 		},
 		{
 			scenario:     "first page size is less than the limit",
 			transactions: []transaction.Transaction{{ID: id1}},
-			expect: func() []*Request {
-				s := NewServer(t)
-
-				s.ExpectGet("/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
-					ReturnJSON([]transaction.Transaction{{ID: id1}})
-
-				return s.ExpectedRequests
+			expectedRequests: []*Request{
+				request.NewRequest(&sync.Mutex{}, httpmock.MethodGet, "/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
+					ReturnJSON([]transaction.Transaction{{ID: id1}}),
 			},
 		},
 		{
 			scenario:     "first page size is same as the limit",
 			transactions: []transaction.Transaction{{ID: id1}, {ID: id2}},
-			expect: func() []*Request {
-				s := NewServer(t)
-
-				s.ExpectGet("/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
-					ReturnJSON([]transaction.Transaction{{ID: id1}, {ID: id2}})
-
-				s.ExpectGet(httpmock.Exactf("/api/smrt/transactions?from=1577934245000&lastId=%s&limit=2&to=1580612645000", id2.String())).
-					ReturnJSON([]transaction.Transaction{})
-
-				return s.ExpectedRequests
+			expectedRequests: []*Request{
+				request.NewRequest(&sync.Mutex{}, httpmock.MethodGet, "/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
+					ReturnJSON([]transaction.Transaction{{ID: id1}, {ID: id2}}),
+				request.NewRequest(&sync.Mutex{}, httpmock.MethodGet, httpmock.Exactf("/api/smrt/transactions?from=1577934245000&lastId=%s&limit=2&to=1580612645000", id2.String())).
+					ReturnJSON([]transaction.Transaction{}),
 			},
 		},
 		{
 			scenario:     "two pages",
 			transactions: []transaction.Transaction{{ID: id1}, {ID: id2}, {ID: id3}},
-			expect: func() []*Request {
-				s := NewServer(t)
-
-				s.ExpectGet("/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
-					ReturnJSON([]transaction.Transaction{{ID: id1}, {ID: id2}})
-
-				s.ExpectGet(httpmock.Exactf("/api/smrt/transactions?from=1577934245000&lastId=%s&limit=2&to=1580612645000", id2.String())).
-					ReturnJSON([]transaction.Transaction{{ID: id3}})
-
-				return s.ExpectedRequests
+			expectedRequests: []*Request{
+				request.NewRequest(&sync.Mutex{}, httpmock.MethodGet, "/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
+					ReturnJSON([]transaction.Transaction{{ID: id1}, {ID: id2}}),
+				request.NewRequest(&sync.Mutex{}, httpmock.MethodGet, httpmock.Exactf("/api/smrt/transactions?from=1577934245000&lastId=%s&limit=2&to=1580612645000", id2.String())).
+					ReturnJSON([]transaction.Transaction{{ID: id3}}),
 			},
 		},
 	}
@@ -88,30 +73,33 @@ func TestWithFindAllTransactionsInRange(t *testing.T) {
 		t.Run(tc.scenario, func(t *testing.T) {
 			t.Parallel()
 
-			var mu sync.Mutex
+			actualRequests := make([]*request.Request, 0)
 
-			mu.Lock()
-			defer mu.Unlock()
+			p := plannerMock.Mock(func(p *plannerMock.Planner) {
+				p.On("Expect", mock.Anything).
+					Run(func(args mock.Arguments) {
+						actualRequests = append(actualRequests, args[0].(*request.Request))
+					})
 
-			s := &Server{
-				Server: &httpmock.Server{},
-			}
+				p.On("IsEmpty").Return(true)
+			})(t)
 
-			WithFindAllTransactionsInRange(from, to, pageSize, tc.transactions)(s)
-			expected := tc.expect()
+			MockEmptyServer(func(s *Server) {
+				s.WithPlanner(p)
+			}, WithFindAllTransactionsInRange(from, to, pageSize, tc.transactions))(t)
 
-			assert.Equal(t, len(expected), len(s.ExpectedRequests))
+			assert.Equal(t, len(tc.expectedRequests), len(actualRequests))
 
-			for i, expected := range expected {
-				actual := s.ExpectedRequests[i]
+			for i, expected := range tc.expectedRequests {
+				actual := actualRequests[i]
 
-				expectedBody, err := expected.Handle(nil)
+				expectedBody, err := handleRequestSuccess(t, expected)
 				assert.NoError(t, err)
 
-				actualBody, err := actual.Handle(nil)
+				actualBody, err := handleRequestSuccess(t, expected)
 				assert.NoError(t, err)
 
-				assert.Equal(t, expected.RequestURI, actual.RequestURI)
+				assert.Equal(t, request.URIMatcher(expected), request.URIMatcher(actual))
 				assert.Equal(t, expectedBody, actualBody)
 			}
 		})

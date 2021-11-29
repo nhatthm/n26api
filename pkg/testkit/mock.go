@@ -2,12 +2,12 @@ package testkit
 
 import (
 	"github.com/google/uuid"
-	"github.com/nhatthm/httpmock"
+	"github.com/nhatthm/httpmock/test"
 	"github.com/stretchr/testify/assert"
 )
 
 // TestingT is an alias of httpmock.TestingT.
-type TestingT = httpmock.TestingT
+type TestingT = test.T
 
 // ServerOption is an option to configure Server.
 type ServerOption = func(s *Server)
