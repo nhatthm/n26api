@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	clock "github.com/nhatthm/go-clock/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	clock "go.nhat.io/clock/mock"
 
 	"github.com/nhatthm/n26api/pkg/auth"
 	"github.com/nhatthm/n26api/pkg/testkit"

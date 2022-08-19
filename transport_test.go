@@ -3,7 +3,7 @@ package n26api_test
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -75,7 +75,7 @@ func TestRoundTripper(t *testing.T) {
 			resp, err := client.Do(req)
 			require.NoError(t, err, "could not make a request to mocked server")
 
-			respBody, err := ioutil.ReadAll(resp.Body)
+			respBody, err := io.ReadAll(resp.Body)
 			require.NoError(t, err, "could not read response body")
 
 			err = resp.Body.Close()

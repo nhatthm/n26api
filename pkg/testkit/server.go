@@ -153,7 +153,7 @@ func (s *Server) ExpectWithBasicAuth(method string, requestURI interface{}) *Req
 
 // Expect expects a request with Bearer Authorization.
 //
-//    Server.Expect(http.MethodGet, "/path").
+//	Server.Expect(http.MethodGet, "/path").
 func (s *Server) Expect(method string, requestURI interface{}) *Request {
 	return s.Server.Expect(method, requestURI).
 		WithHeader("Authorization", func() matcher.Matcher {
@@ -163,42 +163,42 @@ func (s *Server) Expect(method string, requestURI interface{}) *Request {
 
 // ExpectGet expects a request with Bearer Authorization.
 //
-//   Server.ExpectGet("/path")
+//	Server.ExpectGet("/path")
 func (s *Server) ExpectGet(requestURI interface{}) *Request {
 	return s.Expect(http.MethodGet, requestURI)
 }
 
 // ExpectHead expects a request with Bearer Authorization.
 //
-//   Server.ExpectHead("/path")
+//	Server.ExpectHead("/path")
 func (s *Server) ExpectHead(requestURI interface{}) *Request {
 	return s.Expect(http.MethodHead, requestURI)
 }
 
 // ExpectPost expects a request with Bearer Authorization.
 //
-//   Server.ExpectPost("/path")
+//	Server.ExpectPost("/path")
 func (s *Server) ExpectPost(requestURI interface{}) *Request {
 	return s.Expect(http.MethodPost, requestURI)
 }
 
 // ExpectPut expects a request with Bearer Authorization.
 //
-//   Server.ExpectPut("/path")
+//	Server.ExpectPut("/path")
 func (s *Server) ExpectPut(requestURI interface{}) *Request {
 	return s.Expect(http.MethodPut, requestURI)
 }
 
 // ExpectPatch expects a request with Bearer Authorization.
 //
-//   Server.ExpectPatch("/path")
+//	Server.ExpectPatch("/path")
 func (s *Server) ExpectPatch(requestURI interface{}) *Request {
 	return s.Expect(http.MethodPatch, requestURI)
 }
 
 // ExpectDelete expects a request with Bearer Authorization.
 //
-//   Server.ExpectDelete("/path")
+//	Server.ExpectDelete("/path")
 func (s *Server) ExpectDelete(requestURI interface{}) *Request {
 	return s.Expect(http.MethodDelete, requestURI)
 }

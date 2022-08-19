@@ -10,7 +10,7 @@ import (
 
 	"github.com/bool64/ctxd"
 	"github.com/google/uuid"
-	"github.com/nhatthm/go-clock"
+	"go.nhat.io/clock"
 
 	"github.com/nhatthm/n26api/internal/api"
 	"github.com/nhatthm/n26api/pkg/auth"
