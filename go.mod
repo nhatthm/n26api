@@ -3,7 +3,7 @@ module github.com/nhatthm/n26api
 go 1.17
 
 require (
-	github.com/bool64/ctxd v1.1.3
+	github.com/bool64/ctxd v1.2.0
 	github.com/google/uuid v1.3.0
 	github.com/nhatthm/go-matcher v1.3.1
 	github.com/nhatthm/httpmock v0.7.0
