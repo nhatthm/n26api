@@ -1,13 +1,13 @@
 JSON_CLI_VERSION = 1.8.3
 SWAC_VERSION = 0.1.19
-GOLANGCI_LINT_VERSION ?= v1.48.0
+GOLANGCI_LINT_VERSION ?= v1.51.1
 
 BIN_DIR = bin
 VENDOR_DIR = vendor
 OPENAPI = openapi.yaml
 
 GO ?= go
-GOLANGCI_LINT ?= $(BIN_DIR)/golangci-lint-$(GOLANGCI_LINT_VERSION)
+GOLANGCI_LINT ?= $(shell go env GOPATH)/bin/golangci-lint-$(GOLANGCI_LINT_VERSION)
 JSON_CLI ?= ${BIN_DIR}/json-cli
 SWAC ?= ${BIN_DIR}/swac
 
@@ -64,6 +64,11 @@ generate-api: $(JSON_CLI) $(SWAC)
 
 .PHONY: generate
 generate: generate-transaction generate-api
+
+.PHONY: $(GITHUB_OUTPUT)
+$(GITHUB_OUTPUT):
+	@echo "MODULE_NAME=$(MODULE_NAME)" >> "$@"
+	@echo "GOLANGCI_LINT_VERSION=$(GOLANGCI_LINT_VERSION)" >> "$@"
 
 $(GOLANGCI_LINT):
 	@echo "$(OK_COLOR)==> Installing golangci-lint $(GOLANGCI_LINT_VERSION)$(NO_COLOR)"; \

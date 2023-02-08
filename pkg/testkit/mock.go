@@ -2,8 +2,8 @@ package testkit
 
 import (
 	"github.com/google/uuid"
-	"github.com/nhatthm/httpmock/test"
 	"github.com/stretchr/testify/assert"
+	"go.nhat.io/httpmock/test"
 )
 
 // TestingT is an alias of httpmock.TestingT.

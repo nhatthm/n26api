@@ -6,17 +6,16 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/nhatthm/httpmock"
-	"github.com/nhatthm/httpmock/matcher"
-	"github.com/nhatthm/httpmock/planner"
-	"github.com/nhatthm/httpmock/request"
+	"go.nhat.io/httpmock"
+	"go.nhat.io/httpmock/matcher"
+	"go.nhat.io/httpmock/planner"
 
 	"github.com/nhatthm/n26api/pkg/auth"
 	"github.com/nhatthm/n26api/pkg/util"
 )
 
-// Request is an alias of httpmock.Request.
-type Request = request.Request
+// Expectation is an alias of httpmock.Expectation.
+type Expectation = httpmock.Expectation
 
 // Server is a wrapped httpmock.Server to provide more functionalities for testing N26 APIs.
 type Server struct {
@@ -144,7 +143,7 @@ func (s *Server) RefreshToken() auth.Token {
 }
 
 // ExpectWithBasicAuth expects a request with Basic Authorization.
-func (s *Server) ExpectWithBasicAuth(method string, requestURI interface{}) *Request {
+func (s *Server) ExpectWithBasicAuth(method string, requestURI interface{}) Expectation {
 	return s.Server.Expect(method, requestURI).
 		WithHeader("Authorization", func() matcher.Matcher {
 			return httpmock.Exact(s.BasicAuthorization())
@@ -154,7 +153,7 @@ func (s *Server) ExpectWithBasicAuth(method string, requestURI interface{}) *Req
 // Expect expects a request with Bearer Authorization.
 //
 //	Server.Expect(http.MethodGet, "/path").
-func (s *Server) Expect(method string, requestURI interface{}) *Request {
+func (s *Server) Expect(method string, requestURI interface{}) Expectation {
 	return s.Server.Expect(method, requestURI).
 		WithHeader("Authorization", func() matcher.Matcher {
 			return httpmock.Exactf("Bearer %s", s.accessToken)
@@ -164,42 +163,42 @@ func (s *Server) Expect(method string, requestURI interface{}) *Request {
 // ExpectGet expects a request with Bearer Authorization.
 //
 //	Server.ExpectGet("/path")
-func (s *Server) ExpectGet(requestURI interface{}) *Request {
+func (s *Server) ExpectGet(requestURI interface{}) Expectation {
 	return s.Expect(http.MethodGet, requestURI)
 }
 
 // ExpectHead expects a request with Bearer Authorization.
 //
 //	Server.ExpectHead("/path")
-func (s *Server) ExpectHead(requestURI interface{}) *Request {
+func (s *Server) ExpectHead(requestURI interface{}) Expectation {
 	return s.Expect(http.MethodHead, requestURI)
 }
 
 // ExpectPost expects a request with Bearer Authorization.
 //
 //	Server.ExpectPost("/path")
-func (s *Server) ExpectPost(requestURI interface{}) *Request {
+func (s *Server) ExpectPost(requestURI interface{}) Expectation {
 	return s.Expect(http.MethodPost, requestURI)
 }
 
 // ExpectPut expects a request with Bearer Authorization.
 //
 //	Server.ExpectPut("/path")
-func (s *Server) ExpectPut(requestURI interface{}) *Request {
+func (s *Server) ExpectPut(requestURI interface{}) Expectation {
 	return s.Expect(http.MethodPut, requestURI)
 }
 
 // ExpectPatch expects a request with Bearer Authorization.
 //
 //	Server.ExpectPatch("/path")
-func (s *Server) ExpectPatch(requestURI interface{}) *Request {
+func (s *Server) ExpectPatch(requestURI interface{}) Expectation {
 	return s.Expect(http.MethodPatch, requestURI)
 }
 
 // ExpectDelete expects a request with Bearer Authorization.
 //
 //	Server.ExpectDelete("/path")
-func (s *Server) ExpectDelete(requestURI interface{}) *Request {
+func (s *Server) ExpectDelete(requestURI interface{}) Expectation {
 	return s.Expect(http.MethodDelete, requestURI)
 }
 

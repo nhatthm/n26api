@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nhatthm/httpmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.nhat.io/httpmock"
 
 	"github.com/nhatthm/n26api"
 	"github.com/nhatthm/n26api/pkg/testkit/auth"

@@ -6,12 +6,12 @@ import (
 	"net/url"
 
 	"github.com/google/uuid"
-	"github.com/nhatthm/go-matcher"
+	"go.nhat.io/matcher/v2"
 
 	"github.com/nhatthm/n26api/internal/api"
 )
 
-func expectAuthPasswordLogin(s *Server, username, password string, deviceID uuid.UUID) *Request {
+func expectAuthPasswordLogin(s *Server, username, password string, deviceID uuid.UUID) Expectation {
 	return s.WithDeviceID(deviceID).
 		ExpectWithBasicAuth(http.MethodPost, "/oauth/token").
 		WithHeader("device-token", s.DeviceID().String()).
@@ -21,7 +21,7 @@ func expectAuthPasswordLogin(s *Server, username, password string, deviceID uuid
 		)
 }
 
-func expectMFAChallenge(s *Server) *Request {
+func expectMFAChallenge(s *Server) Expectation {
 	return s.ExpectWithBasicAuth(http.MethodPost, "/api/mfa/challenge").
 		WithHeader("device-token", s.DeviceID().String()).
 		WithBody(func() matcher.Matcher {
@@ -29,7 +29,7 @@ func expectMFAChallenge(s *Server) *Request {
 		})
 }
 
-func expectConfirmLogin(s *Server) *Request {
+func expectConfirmLogin(s *Server) Expectation {
 	return s.ExpectWithBasicAuth(http.MethodPost, "/oauth/token").
 		WithHeader("device-token", s.DeviceID().String()).
 		WithHeader("Content-Type", "application/x-www-form-urlencoded").
@@ -38,7 +38,7 @@ func expectConfirmLogin(s *Server) *Request {
 		})
 }
 
-func expectRefreshToken(s *Server) *Request {
+func expectRefreshToken(s *Server) Expectation {
 	return s.ExpectWithBasicAuth(http.MethodPost, "/oauth/token").
 		WithHeader("device-token", s.DeviceID().String()).
 		WithHeader("Content-Type", "application/x-www-form-urlencoded").
@@ -191,7 +191,7 @@ func WithAuthMFAChallengeSuccess() ServerOption {
 }
 
 // WithAuthConfirmLoginFailureInvalidToken expects a request for Login Confirm and returns an Invalid Token error (401).
-func WithAuthConfirmLoginFailureInvalidToken(times int) ServerOption {
+func WithAuthConfirmLoginFailureInvalidToken(times uint) ServerOption {
 	return func(s *Server) {
 		expectConfirmLogin(s).
 			ReturnCode(http.StatusUnauthorized).

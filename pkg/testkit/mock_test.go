@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/nhatthm/go-matcher"
-	"github.com/nhatthm/httpmock"
 	"github.com/stretchr/testify/assert"
+	"go.nhat.io/httpmock"
+	"go.nhat.io/matcher/v2"
 
 	"github.com/nhatthm/n26api/pkg/testkit"
 	"github.com/nhatthm/n26api/pkg/util"
