@@ -1,22 +1,47 @@
 package testkit
 
 import (
-	"sync"
+	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/nhatthm/httpmock"
-	plannerMock "github.com/nhatthm/httpmock/mock/planner"
-	"github.com/nhatthm/httpmock/request"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"go.nhat.io/httpmock"
+	plannerMock "go.nhat.io/httpmock/mock/planner"
+	"go.nhat.io/httpmock/planner"
+	"go.nhat.io/matcher/v2"
 
 	"github.com/nhatthm/n26api/pkg/transaction"
 )
 
 func TestWithFindAllTransactionsInRange(t *testing.T) {
 	t.Parallel()
+
+	type result struct {
+		URL  string
+		Body string
+	}
+
+	type expectation interface {
+		httpmock.ExpectationHandler
+		planner.Expectation
+	}
+
+	createTxsResult := func(url string, txs []transaction.Transaction) result {
+		data, err := json.Marshal(txs)
+		if err != nil {
+			panic(err)
+		}
+
+		return result{
+			URL:  url,
+			Body: string(data),
+		}
+	}
 
 	pageSize := int64(2)
 	from := time.Date(2020, 1, 2, 3, 4, 5, 0, time.UTC)
@@ -26,44 +51,38 @@ func TestWithFindAllTransactionsInRange(t *testing.T) {
 	id3 := uuid.New()
 
 	testCases := []struct {
-		scenario         string
-		transactions     []transaction.Transaction
-		expectedRequests []*Request
+		scenario        string
+		transactions    []transaction.Transaction
+		expectedResults []result
 	}{
 		{
 			scenario:     "first page is empty",
 			transactions: []transaction.Transaction{},
-			expectedRequests: []*Request{
-				request.NewRequest(&sync.Mutex{}, httpmock.MethodGet, "/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
-					ReturnJSON([]transaction.Transaction{}),
+			expectedResults: []result{
+				createTxsResult("/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000", []transaction.Transaction{}),
 			},
 		},
 		{
 			scenario:     "first page size is less than the limit",
 			transactions: []transaction.Transaction{{ID: id1}},
-			expectedRequests: []*Request{
-				request.NewRequest(&sync.Mutex{}, httpmock.MethodGet, "/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
-					ReturnJSON([]transaction.Transaction{{ID: id1}}),
+			expectedResults: []result{
+				createTxsResult("/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000", []transaction.Transaction{{ID: id1}}),
 			},
 		},
 		{
 			scenario:     "first page size is same as the limit",
 			transactions: []transaction.Transaction{{ID: id1}, {ID: id2}},
-			expectedRequests: []*Request{
-				request.NewRequest(&sync.Mutex{}, httpmock.MethodGet, "/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
-					ReturnJSON([]transaction.Transaction{{ID: id1}, {ID: id2}}),
-				request.NewRequest(&sync.Mutex{}, httpmock.MethodGet, httpmock.Exactf("/api/smrt/transactions?from=1577934245000&lastId=%s&limit=2&to=1580612645000", id2.String())).
-					ReturnJSON([]transaction.Transaction{}),
+			expectedResults: []result{
+				createTxsResult("/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000", []transaction.Transaction{{ID: id1}, {ID: id2}}),
+				createTxsResult(fmt.Sprintf("/api/smrt/transactions?from=1577934245000&lastId=%s&limit=2&to=1580612645000", id2.String()), []transaction.Transaction{}),
 			},
 		},
 		{
 			scenario:     "two pages",
 			transactions: []transaction.Transaction{{ID: id1}, {ID: id2}, {ID: id3}},
-			expectedRequests: []*Request{
-				request.NewRequest(&sync.Mutex{}, httpmock.MethodGet, "/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000").
-					ReturnJSON([]transaction.Transaction{{ID: id1}, {ID: id2}}),
-				request.NewRequest(&sync.Mutex{}, httpmock.MethodGet, httpmock.Exactf("/api/smrt/transactions?from=1577934245000&lastId=%s&limit=2&to=1580612645000", id2.String())).
-					ReturnJSON([]transaction.Transaction{{ID: id3}}),
+			expectedResults: []result{
+				createTxsResult("/api/smrt/transactions?from=1577934245000&limit=2&to=1580612645000", []transaction.Transaction{{ID: id1}, {ID: id2}}),
+				createTxsResult(fmt.Sprintf("/api/smrt/transactions?from=1577934245000&lastId=%s&limit=2&to=1580612645000", id2.String()), []transaction.Transaction{{ID: id3}}),
 			},
 		},
 	}
@@ -73,12 +92,12 @@ func TestWithFindAllTransactionsInRange(t *testing.T) {
 		t.Run(tc.scenario, func(t *testing.T) {
 			t.Parallel()
 
-			actualRequests := make([]*request.Request, 0)
+			actualRequests := make([]expectation, 0)
 
 			p := plannerMock.Mock(func(p *plannerMock.Planner) {
 				p.On("Expect", mock.Anything).
 					Run(func(args mock.Arguments) {
-						actualRequests = append(actualRequests, args[0].(*request.Request))
+						actualRequests = append(actualRequests, args[0].(expectation))
 					})
 
 				p.On("IsEmpty").Return(true)
@@ -88,19 +107,16 @@ func TestWithFindAllTransactionsInRange(t *testing.T) {
 				s.WithPlanner(p)
 			}, WithFindAllTransactionsInRange(from, to, pageSize, tc.transactions))(t)
 
-			assert.Equal(t, len(tc.expectedRequests), len(actualRequests))
+			require.Equal(t, len(tc.expectedResults), len(actualRequests))
 
-			for i, expected := range tc.expectedRequests {
+			for i, expected := range tc.expectedResults {
 				actual := actualRequests[i]
 
-				expectedBody, err := handleRequestSuccess(t, expected)
+				actualBody, err := handleRequestSuccess(t, actual)
 				assert.NoError(t, err)
 
-				actualBody, err := handleRequestSuccess(t, expected)
-				assert.NoError(t, err)
-
-				assert.Equal(t, request.URIMatcher(expected), request.URIMatcher(actual))
-				assert.Equal(t, expectedBody, actualBody)
+				assert.Equal(t, matcher.Match(expected.URL), actual.URIMatcher())
+				assert.Equal(t, expected.Body, string(actualBody))
 			}
 		})
 	}
