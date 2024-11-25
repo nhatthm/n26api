@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/bool64/ctxd v1.2.1
 	github.com/google/uuid v1.6.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	go.nhat.io/clock v0.7.0
 	go.nhat.io/httpmock v0.11.0
 	go.nhat.io/matcher/v2 v2.0.0
